@@ -1,19 +1,37 @@
 package main
 
 import (
+	"context"
+	"os"
+	"os/signal"
+
+	_ "github.com/lib/pq"
+
+	"digitalUniversity/application"
 	"digitalUniversity/config"
 	"digitalUniversity/logger"
 )
 
 func main() {
-	cfg := config.Get()
-	log := logger.GetInstance()
-	defer log.Close()
+    logr := logger.GetInstance()
 
-	log.SetLevel(cfg.LogLevel)
-	log.SetLogDir(cfg.LogDir)
+    cfg, err := config.Load()
+    if err != nil {
+        logr.Fatalf("config load failed: %v", err)
+    }
 
-	log.Info("Application started with config: LOG_LEVEL=" + cfg.LogLevel.String())
-	log.Warn("This is a warning")
-	log.Error("Something went wrong")
+    if err := logr.Initialize(cfg.LogDir, cfg.LogLevel); err != nil {
+        logr.Fatalf("logger initialization failed: %v", err)
+    }
+
+    logr.Infof("Application starting. LogLevel=%d", cfg.LogLevel)
+
+    ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+    defer cancel()
+
+    app := application.NewApplication()
+    app.Configure(cfg, ctx)
+    app.Run(ctx)
+
+    logr.Info("Application stopped")
 }

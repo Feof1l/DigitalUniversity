@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: max-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    ##env_file: ".env"
+    volumes:
+    - data:/var/lib/postgresql/data:rw
+
+
+volumes:
+  data:
+

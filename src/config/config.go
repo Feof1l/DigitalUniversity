@@ -1,85 +1,39 @@
 package config
 
 import (
-	"log"
-	"os"
-	"strings"
-	"sync"
-
+	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 
-)
-
-type LogLevel int
-
-const (
-	DEBUG LogLevel = iota
-	INFO
-	WARNING
-	ERROR
-	CRITICAL
+	"digitalUniversity/logger"
 )
 
 type Config struct {
-	LogLevel LogLevel
-	LogDir   string
+    LogLevel logger.LogLevel `env:"LOG_LEVEL" envDefault:"1"`
+    LogDir   string          `env:"LOG_DIR" envDefault:"./logs"`
+    Database DatabaseConfig  `envPrefix:"DATABASE_"`
+    Telegram MaxConfig       `envPrefix:"MAX_"`
 }
 
-var instance *Config
-var once sync.Once
-
-func Get() *Config {
-	once.Do(func() {
-		err := godotenv.Load("../.env")
-		if err != nil {
-			log.Printf("[config] .env not found, using defaults")
-		}
-
-		instance = &Config{
-			LogLevel: parseLogLevel(os.Getenv("LOG_LEVEL")),
-			LogDir:   getEnv("LOG_DIR", "./logs"),
-		}
-	})
-	return instance
+type MaxConfig struct {
+    Token string `env:"TOKEN"`
 }
 
-func parseLogLevel(levelStr string) LogLevel {
-	switch strings.ToUpper(strings.TrimSpace(levelStr)) {
-	case "DEBUG":
-		return DEBUG
-	case "INFO":
-		return INFO
-	case "WARNING":
-		return WARNING
-	case "ERROR":
-		return ERROR
-	case "CRITICAL":
-		return CRITICAL
-	default:
-		return INFO
-	}
+type DatabaseConfig struct {
+    URI string `env:"URI"`
 }
 
-func (l LogLevel) String() string {
-	switch l {
-	case DEBUG:
-		return "DEBUG"
-	case INFO:
-		return "INFO"
-	case WARNING:
-		return "WARNING"
-	case ERROR:
-		return "ERROR"
-	case CRITICAL:
-		return "CRITICAL"
-	default:
-		return "UNKNOWN"
-	}
-}
+func Load() (*Config, error) {
+    logr := logger.GetInstance()
 
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
+    _ = godotenv.Load(".env")
+    _ = godotenv.Load("../.env")
+
+    var cfg Config
+    if err := env.Parse(&cfg); err != nil {
+        return nil, err
+    }
+
+    logr.Debugf("Config loaded: %+v", cfg)
+
+    return &cfg, nil
 }
