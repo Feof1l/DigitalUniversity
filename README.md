@@ -1,21 +1,25 @@
 # Проект
+
 Этот проект представляет собой приложение цифрового вуза в рамках хакатона VK & Max.
 
 ## Общая архитектура системы
 
-
 ## Запуск проекта
+
 Для запуска проекта необходимо выполнить следующие шаги:
 
 ### 1. Docker Compose
+
 Запустите Docker Compose командой:
+
 ```bash
 docker-compose up --build
 ```
 
-
 # Структура базы данных
+
 ## Таблица пользователей (users)
+
 ```sql
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
@@ -29,14 +33,16 @@ CREATE TABLE users (
 ```
 
 ## Таблица ролей (roles)
+
 ```sql
 CREATE TABLE roles (
     role_id SERIAL PRIMARY KEY,
-    role_name VARCHAR(50) UNIQUE NOT NULL 
+    role_name VARCHAR(50) UNIQUE NOT NULL
 );
 ```
 
 ## Таблица дисциплин (subjects)
+
 ```sql
 CREATE TABLE subjects (
     subject_id SERIAL PRIMARY KEY,
@@ -46,6 +52,7 @@ CREATE TABLE subjects (
 ```
 
 ## Таблица предпочтений групп (groups)
+
 ```sql
 CREATE TABLE groups (
     group_id SERIAL PRIMARY KEY,
@@ -54,6 +61,7 @@ CREATE TABLE groups (
 ```
 
 ## Таблица связи групп и дисциплин (groups_subjects)
+
 ```sql
 CREATE TABLE groups_subjects (
     group_id INT NOT NULL REFERENCES groups(group_id),
@@ -62,21 +70,22 @@ CREATE TABLE groups_subjects (
 );
 ```
 
-
 ## Таблица типов занятий (lesson_types)
+
 ```sql
 CREATE TABLE lesson_types (
     lesson_type_id SERIAL PRIMARY KEY,
-    type_name VARCHAR(50) UNIQUE NOT NULL 
+    type_name VARCHAR(50) UNIQUE NOT NULL
 );
 
 ```
 
 ## Таблица расписания (schedule)
+
 ```sql
 CREATE TABLE schedule (
     schedule_id SERIAL PRIMARY KEY,
-    weekday SMALLINT NOT NULL CHECK (weekday BETWEEN 1 AND 7), 
+    weekday SMALLINT NOT NULL CHECK (weekday BETWEEN 1 AND 6),
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     subject_id INT NOT NULL REFERENCES subjects(subject_id),
@@ -87,6 +96,7 @@ CREATE TABLE schedule (
 ```
 
 ## Таблица оценок (grades)
+
 ```sql
 CREATE TABLE grades (
     grade_id SERIAL PRIMARY KEY,
@@ -100,6 +110,7 @@ CREATE TABLE grades (
 ```
 
 ## Таблица посещаемости (attendance)
+
 ```sql
 CREATE TABLE attendance (
     attendance_id SERIAL PRIMARY KEY,
@@ -111,6 +122,7 @@ CREATE TABLE attendance (
 ```
 
 ## Таблица материалов (materials)
+
 ```sql
 CREATE TABLE materials (
     material_id SERIAL PRIMARY KEY,
@@ -120,31 +132,28 @@ CREATE TABLE materials (
 );
 ```
 
-
-
 ## Взаимосвязи между таблицами
-![alt text](db.png)
+
+![alt text](screenshots/db.jpg)
 
 ## Разработка
-
 
 ### Backend
 
 - Расположен в `src/`
 - Модульная структура:
-  * `src/application/` - код приложения
-  * `src/config/` - конфигурация приложения
-  * `src/database/` - работа с базой данных
-  * `src/maxAPI/` - бот,интегрируемый с приложением Max
-  * `src/models/` - модели данных
-
+  - `src/application/` - код приложения
+  - `src/config/` - конфигурация приложения
+  - `src/logger/` - логгер
+  - `src/database/` - работа с базой данных
+  - `src/maxAPI/` - бот,интегрируемый с приложением Max
+  - `src/models/` - модели данных
 
 ## Очистка Docker окружения
+
 ```bash
 docker stop $(docker ps -a -q)
 docker rm $(docker ps -a -q)
 docker rmi $(docker images -q)
 docker system prune -a --volumes -f
 ```
-
-
