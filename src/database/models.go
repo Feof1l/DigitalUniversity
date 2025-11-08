@@ -2,6 +2,7 @@ package database
 
 import (
 	"time"
+
 )
 
 type Role struct {
@@ -17,7 +18,7 @@ type Group struct {
 type User struct {
 	UserID    int64  `db:"user_id" json:"user_id"`
 	Name      string `db:"name" json:"name"`
-	Username  string `db:"username" json:"username"`
+	UserMaxID int64  `db:"usermax_id" json:"usermax_id"`
 	FirstName string `db:"first_name" json:"first_name"`
 	LastName  string `db:"last_name" json:"last_name"`
 	RoleID    int64  `db:"role_id" json:"role_id"`
@@ -43,8 +44,8 @@ type LessonType struct {
 type Schedule struct {
 	ScheduleID   int64  `db:"schedule_id" json:"schedule_id"`
 	Weekday      int16  `db:"weekday" json:"weekday"`
-	StartTime    string `db:"start_time" json:"start_time"`
-	EndTime      string `db:"end_time" json:"end_time"`
+	StartTime    time.Time `db:"start_time" json:"start_time"`
+    EndTime      time.Time `db:"end_time" json:"end_time"`
 	SubjectID    int64  `db:"subject_id" json:"subject_id"`
 	TeacherID    int64  `db:"teacher_id" json:"teacher_id"`
 	GroupID      int64  `db:"group_id" json:"group_id"`

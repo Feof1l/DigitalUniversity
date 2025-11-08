@@ -1,0 +1,21 @@
+subject_name,type_name,classroom,group_name,teacher_last_name,teacher_first_name,weekday,start_time,end_time
+Mathematical Analysis,Lecture,A-101,IT-101,Ivanova,Anna,1,10:00,11:30
+Algorithms and Data Structures,Practice,I-303,IT-101,Petrov,Dmitry,2,14:00,15:30
+Graph Theory,Lecture,A-102,IT-101,Sidorova,Ekaterina,3,09:00,10:30
+Python Programming,Laboratory,K-105,IT-101,Kozlov,Mikhail,4,11:30,13:00
+Databases,Seminar,B-205,IT-101,Novikova,Tatiana,5,15:00,16:30
+Computer Networks,Lecture,N-201,IT-102,Mikhailov,Sergey,6,12:00,13:30
+Operating Systems,Laboratory,S-302,IT-102,Fedorova,Olga,7,16:00,17:30
+Machine Learning,Practice,T-401,IT-102,Alekseev,Pavel,1,13:30,15:00
+Artificial Intelligence,Seminar,V-103,IT-102,Smirnova,Yulia,2,10:30,12:00
+Automata Theory,Lecture,A-101,IT-102,Lebedev,Konstantin,3,14:30,16:00
+Probability Theory,Lecture,L-404,EC-201,Ivanova,Anna,4,09:00,10:30
+Linear Algebra,Practice,I-303,EC-201,Sidorova,Ekaterina,5,11:00,12:30
+Cryptography,Laboratory,K-105,EC-201,Novikova,Tatiana,6,15:30,17:00
+Numerical Methods,Seminar,B-205,EC-201,Fedorova,Olga,7,12:00,13:30
+Computational Geometry,Lecture,N-201,EC-201,Smirnova,Yulia,1,16:30,18:00
+Discrete Mathematics,Practice,S-302,EC-202,Petrov,Dmitry,2,10:00,11:30
+Algorithm Optimization,Laboratory,T-401,EC-202,Kozlov,Mikhail,3,14:00,15:30
+Mathematical Logic,Seminar,V-103,EC-202,Mikhailov,Sergey,4,11:30,13:00
+Web Development,Practice,A-102,IS-301,Alekseev,Pavel,5,15:00,16:30
+Mobile Development,Laboratory,L-404,IS-301,Lebedev,Konstantin,6,13:00,14:30
