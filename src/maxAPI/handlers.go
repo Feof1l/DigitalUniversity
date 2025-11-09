@@ -71,7 +71,6 @@ func (b *Bot) handleMessageCreated(ctx context.Context, u *schemes.MessageCreate
     userID := u.Message.Sender.UserId
     messageID := u.Message.Body.Mid
 
-    // ДЕДУПЛИКАЦИЯ по message_id
     b.mu.Lock()
     if b.processedMessages[messageID] {
         b.mu.Unlock()
