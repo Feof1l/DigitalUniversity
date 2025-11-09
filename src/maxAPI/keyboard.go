@@ -7,34 +7,57 @@ import (
 	"github.com/max-messenger/max-bot-api-client-go/schemes"
 )
 
+const (
+	btnUploadStudents  = "Загрузить файл со студентами"
+	btnUploadTeachers  = "Загрузить файл с преподавателями"
+	btnUploadSchedule  = "Загрузить файл с расписанием"
+
+	btnShowSchedule     = "Показать расписание"
+	btnMarkAttendance   = "Отметить посещаемость"
+	btnMarkScore        = "Поставить оценку"
+
+	btnShowScore = "Посмотреть оценки"
+
+	btnPrev = "← Назад"
+	btnNext = "Вперёд →"
+
+	payloadUploadStudents  = "uploadStudents"
+	payloadUploadTeachers  = "uploadTeachers"
+	payloadUploadSchedule  = "uploadSchedule"
+	payloadShowSchedule    = "showSchedule"
+	payloadMarkAttendance  = "markAttendance"
+	payloadMarkScore       = "markScore"
+	payloadShowScore       = "showScore"
+	payloadScheduleDay     = "sch_day_%d"
+)
+
 func GetAdminKeyboard(api *maxbot.Api) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
-	keyboard.AddRow().AddCallback("Загрузить файл со студентами", schemes.NEGATIVE, "uploadStudents")
-	keyboard.AddRow().AddCallback("Загрузить файл с преподавателями", schemes.NEGATIVE, "uploadTeachers")
-	keyboard.AddRow().AddCallback("Загрузить файл с расписанием", schemes.NEGATIVE, "uploadSchedule")
+	keyboard.AddRow().AddCallback(btnUploadStudents, schemes.NEGATIVE, payloadUploadStudents)
+	keyboard.AddRow().AddCallback(btnUploadTeachers, schemes.NEGATIVE, payloadUploadTeachers)
+	keyboard.AddRow().AddCallback(btnUploadSchedule, schemes.NEGATIVE, payloadUploadSchedule)
 	return keyboard
 }
 
 func GetTeacherKeyboard(api *maxbot.Api) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
-	keyboard.AddRow().AddCallback("Показать расписание", schemes.NEGATIVE, "showSchedule")
-	keyboard.AddRow().AddCallback("Отметить посещаемость", schemes.NEGATIVE, "markAttendance")
-	keyboard.AddRow().AddCallback("Поставить оценку", schemes.NEGATIVE, "markScore")
+	keyboard.AddRow().AddCallback(btnShowSchedule, schemes.NEGATIVE, payloadShowSchedule)
+	keyboard.AddRow().AddCallback(btnMarkAttendance, schemes.NEGATIVE, payloadMarkAttendance)
+	keyboard.AddRow().AddCallback(btnMarkScore, schemes.NEGATIVE, payloadMarkScore)
 	return keyboard
 }
 
 func GetStudentKeyboard(api *maxbot.Api) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
-	keyboard.AddRow().AddCallback("Показать расписание", schemes.NEGATIVE, "showSchedule")
-	keyboard.AddRow().AddCallback("Посмотреть оценки", schemes.NEGATIVE, "showScore")
+	keyboard.AddRow().AddCallback(btnShowSchedule, schemes.NEGATIVE, payloadShowSchedule)
+	keyboard.AddRow().AddCallback(btnShowScore, schemes.NEGATIVE, payloadShowScore)
 	return keyboard
 }
 
 func GetScheduleKeyboard(api *maxbot.Api, prev, next int16) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().
-		AddCallback("← Назад", schemes.NEGATIVE, fmt.Sprintf("sch_day_%d", prev)).
-		AddCallback("Вперёд →", schemes.NEGATIVE, fmt.Sprintf("sch_day_%d", next))
-
+		AddCallback(btnPrev, schemes.NEGATIVE, fmt.Sprintf(payloadScheduleDay, prev)).
+		AddCallback(btnNext, schemes.NEGATIVE, fmt.Sprintf(payloadScheduleDay, next))
 	return keyboard
 }

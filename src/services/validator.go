@@ -14,6 +14,20 @@ const (
 	FileTypeSchedule FileType = "schedule"
 )
 
+const (
+	errMsgInvalidCSV       = "Ошибка чтения CSV файла. Убедитесь что файл имеет правильный формат."
+	errMsgEmptyFile        = "Файл пустой. Отправьте файл с данными."
+	errMsgOnlyHeaders      = "Файл содержит только заголовки. Добавьте данные."
+	errMsgInvalidStructure = "Неверная структура файла %s.\n\nОжидаются столбцы:\n%v\n\nПолучены:\n%v\n"
+)
+
+var expectedHeaders = map[FileType][]string{
+	FileTypeStudents: {"User_id", "Last_name", "First_name", "Study_group"},
+	FileTypeTeachers: {"User_id", "Last_name", "First_name"},
+	FileTypeSchedule: {"subject_name", "type_name", "classroom", "group_name",
+		"teacher_last_name", "teacher_first_name", "weekday", "start_time", "end_time"},
+}
+
 type ValidationError struct {
 	Message string
 }
@@ -22,62 +36,67 @@ func (e *ValidationError) Error() string {
 	return e.Message
 }
 
+func newValidationError(msg string) *ValidationError {
+	return &ValidationError{Message: msg}
+}
+
 func ValidateCSVStructure(filePath string, expectedType FileType) error {
-	file, err := os.Open(filePath)
+	records, err := readAndParseCSV(filePath)
 	if err != nil {
 		return err
+	}
+
+	if err := validateRecordsNotEmpty(records); err != nil {
+		return err
+	}
+
+	return validateHeaders(records[0], expectedType)
+}
+
+func readAndParseCSV(filePath string) ([][]string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
 	}
 	defer file.Close()
 
 	reader := csv.NewReader(file)
 	records, err := reader.ReadAll()
 	if err != nil {
-		return &ValidationError{Message: "Ошибка чтения CSV файла. Убедитесь что файл имеет правильный формат."}
+		return nil, newValidationError(errMsgInvalidCSV)
 	}
 
+	return records, nil
+}
+
+func validateRecordsNotEmpty(records [][]string) error {
 	if len(records) == 0 {
-		return &ValidationError{Message: "Файл пустой. Отправьте файл с данными."}
+		return newValidationError(errMsgEmptyFile)
 	}
 
 	if len(records) == 1 {
-		return &ValidationError{Message: "Файл содержит только заголовки. Добавьте данные."}
-	}
-
-	header := records[0]
-
-	switch expectedType {
-	case FileTypeStudents:
-		expectedHeaders := []string{"User_id", "Last_name", "First_name", "Study_group"}
-		if !validateHeaders(header, expectedHeaders) {
-			return &ValidationError{
-				Message: fmt.Sprintf("Неверная структура файла студентов.\n\nОжидаются столбцы:\n%v\n\nПолучены:\n%v\n\nОтправьте правильный файл со студентами.",
-					expectedHeaders, header),
-			}
-		}
-
-	case FileTypeTeachers:
-		expectedHeaders := []string{"User_id", "Last_name", "First_name"}
-		if !validateHeaders(header, expectedHeaders) {
-			return &ValidationError{
-				Message: fmt.Sprintf("Неверная структура файла преподавателей.\n\nОжидаются столбцы:\n%v\n\nПолучены:\n%v\n\nОтправьте правильный файл с преподавателями.",
-					expectedHeaders, header),
-			}
-		}
-
-	case FileTypeSchedule:
-		expectedHeaders := []string{"subject_name", "type_name", "classroom", "group_name", "teacher_last_name", "teacher_first_name", "weekday", "start_time", "end_time", "lesson_type_id"}
-		if !validateHeaders(header, expectedHeaders) {
-			return &ValidationError{
-				Message: fmt.Sprintf("Неверная структура файла расписания.\n\nОжидаются столбцы:\n%v\n\nПолучены:\n%v\n\nОтправьте правильный файл с расписанием.",
-					expectedHeaders, header),
-			}
-		}
+		return newValidationError(errMsgOnlyHeaders)
 	}
 
 	return nil
 }
 
-func validateHeaders(actual, expected []string) bool {
+func validateHeaders(actualHeaders []string, fileType FileType) error {
+	expected, exists := expectedHeaders[fileType]
+	if !exists {
+		return fmt.Errorf("unknown file type: %s", fileType)
+	}
+
+	if !headersMatch(actualHeaders, expected) {
+		return newValidationError(
+			fmt.Sprintf(errMsgInvalidStructure, fileType, expected, actualHeaders),
+		)
+	}
+
+	return nil
+}
+
+func headersMatch(actual, expected []string) bool {
 	if len(actual) != len(expected) {
 		return false
 	}

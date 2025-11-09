@@ -49,12 +49,14 @@ func (imp *CSVImporter) ImportStudents(filePath string) error {
 		return err
 	}
 
-	for i, record := range records {
-		if i == 0 {
-			continue
+	for i := 1; i < len(records); i++ {
+		record := records[i]
+
+		userMaxID, err := strconv.ParseInt(record[0], 10, 64)
+		if err != nil {
+			return err
 		}
 
-		userMaxID, _ := strconv.ParseInt(record[0], 10, 64)
 		lastName := record[1]
 		firstName := record[2]
 		groupName := record[3]
@@ -90,10 +92,8 @@ func (imp *CSVImporter) ImportTeachers(filePath string) error {
 		return err
 	}
 
-	for i, record := range records {
-		if i == 0 {
-			continue
-		}
+	for i := 1; i < len(records); i++ {
+		record := records[i]
 
 		userMaxID, _ := strconv.ParseInt(record[0], 10, 64)
 		lastName := record[1]
@@ -120,18 +120,26 @@ func (imp *CSVImporter) ImportSchedule(filePath string) error {
 	}
 	defer tx.Rollback()
 
-	for i, record := range records {
-		if i == 0 {
-			continue
-		}
+	teacherRoleID, err := imp.roleRepo.GetRoleIDByName(tx, "teacher")
+	if err != nil {
+		return err
+	}
+
+	for i := 1; i < len(records); i++ {
+		record := records[i]
 
 		subjectName := record[0]
 		typeName := record[1]
-		//add record[2]
+		classroom := record[2]
 		groupName := record[3]
 		teacherLastName := record[4]
 		teacherFirstName := record[5]
-		weekday, _ := strconv.Atoi(record[6])
+
+		weekday, err := strconv.Atoi(record[6])
+		if err != nil {
+			return err
+		}
+
 		startTime := record[7]
 		endTime := record[8]
 
@@ -140,7 +148,7 @@ func (imp *CSVImporter) ImportSchedule(filePath string) error {
 			return err
 		}
 
-		teacherID, err := imp.userRepo.GetTeacherIDByName(tx, teacherLastName, teacherFirstName)
+		teacherID, err := imp.userRepo.CreateOrGetTeacher(tx, teacherFirstName, teacherLastName, teacherRoleID)
 		if err != nil {
 			return err
 		}
@@ -150,12 +158,12 @@ func (imp *CSVImporter) ImportSchedule(filePath string) error {
 			return err
 		}
 
-		groupID, err := imp.groupRepo.GetGroupIDByName(tx, groupName)
+		groupID, err := imp.groupRepo.CreateOrGetGroup(tx, groupName)
 		if err != nil {
 			return err
 		}
 
-		err = imp.scheduleRepo.CreateSchedule(tx, weekday, startTime, endTime, subjectID, teacherID, groupID, lessonTypeID)
+		err = imp.scheduleRepo.CreateSchedule(tx, weekday, startTime, endTime, classroom, subjectID, teacherID, groupID, lessonTypeID)
 		if err != nil {
 			return err
 		}

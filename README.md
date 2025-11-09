@@ -8,7 +8,7 @@
 
 Для запуска проекта необходимо выполнить следующие шаги:
 
-### 1. Docker Compose
+### Docker Compose
 
 Запустите Docker Compose командой:
 
@@ -16,9 +16,9 @@
 docker-compose up --build
 ```
 
-# Структура базы данных
+## Структура базы данных
 
-## Таблица пользователей (users)
+### Таблица пользователей (users)
 
 ```sql
 CREATE TABLE users (
@@ -32,7 +32,7 @@ CREATE TABLE users (
 );
 ```
 
-## Таблица ролей (roles)
+### Таблица ролей (roles)
 
 ```sql
 CREATE TABLE roles (
@@ -41,7 +41,7 @@ CREATE TABLE roles (
 );
 ```
 
-## Таблица дисциплин (subjects)
+### Таблица дисциплин (subjects)
 
 ```sql
 CREATE TABLE subjects (
@@ -51,7 +51,7 @@ CREATE TABLE subjects (
 );
 ```
 
-## Таблица предпочтений групп (groups)
+### Таблица групп (groups)
 
 ```sql
 CREATE TABLE groups (
@@ -60,7 +60,7 @@ CREATE TABLE groups (
 );
 ```
 
-## Таблица связи групп и дисциплин (groups_subjects)
+### Таблица связи групп и дисциплин (groups_subjects)
 
 ```sql
 CREATE TABLE groups_subjects (
@@ -70,7 +70,7 @@ CREATE TABLE groups_subjects (
 );
 ```
 
-## Таблица типов занятий (lesson_types)
+### Таблица типов занятий (lesson_types)
 
 ```sql
 CREATE TABLE lesson_types (
@@ -80,7 +80,7 @@ CREATE TABLE lesson_types (
 
 ```
 
-## Таблица расписания (schedule)
+### Таблица расписания (schedule)
 
 ```sql
 CREATE TABLE schedule (
@@ -95,7 +95,7 @@ CREATE TABLE schedule (
 );
 ```
 
-## Таблица оценок (grades)
+### Таблица оценок (grades)
 
 ```sql
 CREATE TABLE grades (
@@ -109,7 +109,7 @@ CREATE TABLE grades (
 );
 ```
 
-## Таблица посещаемости (attendance)
+### Таблица посещаемости (attendance)
 
 ```sql
 CREATE TABLE attendance (
@@ -121,7 +121,7 @@ CREATE TABLE attendance (
 );
 ```
 
-## Таблица материалов (materials)
+### Таблица материалов (materials)
 
 ```sql
 CREATE TABLE materials (
@@ -132,7 +132,7 @@ CREATE TABLE materials (
 );
 ```
 
-## Взаимосвязи между таблицами
+### Взаимосвязи между таблицами
 
 ![alt text](screenshots/db.jpg)
 
@@ -141,13 +141,27 @@ CREATE TABLE materials (
 ### Backend
 
 - Расположен в `src/`
+- Используются Go-модули (`go.mod`, `go.sum`), точка входа — `main.go`.
+- Конфигурация и сборка: `backend.yml`, `Dockerfile`.
 - Модульная структура:
-  - `src/application/` - код приложения
-  - `src/config/` - конфигурация приложения
-  - `src/logger/` - логгер
-  - `src/database/` - работа с базой данных
-  - `src/maxAPI/` - бот,интегрируемый с приложением Max
-  - `src/models/` - модели данных
+  - `src/application/` — инициализация и запуск приложения
+    - `application.go`
+  - `src/config/` — загрузка и управление конфигурацией
+    - `config.go`
+  - `src/database/` — подключение к БД, миграции и репозиторий
+    - `database.go`
+    - `models.go` — ORM-модели
+    - `repository.go` — методы доступа к данным
+  - `src/logger/` — кастомный логгер
+    - `logger.go`
+  - `src/maxAPI/` — интеграция с Max
+    - `bot.go` — инициализация бота
+    - `handlers.go` — обработчики команд и callback-ов
+    - `keyboard.go` — генерация клавиатур
+    - `schedule.go` — работа с расписанием через бота
+  - `src/services/` — бизнес-логика и вспомогательные сервисы
+    - `importer.go` — импорт данных
+    - `validator.go` — валидация входных данных
 
 ## Очистка Docker окружения
 

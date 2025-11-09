@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"digitalUniversity/logger"
+
 )
 
 type Config struct {
@@ -24,7 +25,6 @@ type DatabaseConfig struct {
 
 func Load() (*Config, error) {
 	_ = godotenv.Load(".env")
-	_ = godotenv.Load("../.env")
 
 	var cfg Config
 	if err := env.Parse(&cfg); err != nil {
