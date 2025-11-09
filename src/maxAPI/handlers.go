@@ -28,7 +28,7 @@ const (
 	studentsSuccessMessage  = "✅ Студенты успешно загружены!"
 	teachersSuccessMessages = "✅ Преподаватели успешно загружены!"
 	scheduleSuccessMessage  = "✅ Расписание успешно загружено!"
-	notRulesMessage         = "❌У вас недостаточно прав для этого действия"
+	notRulesMessage         = "У вас недостаточно прав для этого действия"
 )
 
 func (b *Bot) handleBotStarted(ctx context.Context, u *schemes.BotStartedUpdate) {
@@ -52,51 +52,29 @@ func (b *Bot) handleBotStarted(ctx context.Context, u *schemes.BotStartedUpdate)
 
 	switch userRole {
 	case "admin":
-		b.sendAdminKeyboard(ctx, chatID)
+		b.sendKeyboard(ctx, GetAdminKeyboard(b.MaxAPI), chatID, adminMsg)
 	case "teacher":
-		_, err := b.MaxAPI.Messages.Send(ctx, maxbot.NewMessage().
-			SetChat(chatID).
-			SetText(teachersMessage))
-		if err != nil && err.Error() != "" {
-			b.logger.Errorf("Failed to send teacher message: %v", err)
-		}
+		b.sendKeyboard(ctx, GetTeacherKeyboard(b.MaxAPI), chatID, teachersMessage)
 	case "student":
-		_, err := b.MaxAPI.Messages.Send(ctx, maxbot.NewMessage().
-			SetChat(chatID).
-			SetText(studentsMessage))
-		if err != nil && err.Error() != "" {
-			b.logger.Errorf("Failed to send student message: %v", err)
-		}
+		b.sendKeyboard(ctx, GetStudentKeyboard(b.MaxAPI), chatID, studentsMessage)
 	default:
 		b.logger.Warnf("Unknown role for user %d: %q", sender.UserId, userRole)
 	}
 }
 
-func (b *Bot) sendAdminKeyboard(ctx context.Context, chatID int64) {
-	adminKeyboard := GetAdminKeyboard(b.MaxAPI)
+func (b *Bot) sendKeyboard(ctx context.Context, keyboard *maxbot.Keyboard, chatID int64, msg string) {
 	_, err := b.MaxAPI.Messages.Send(ctx, maxbot.NewMessage().
 		SetChat(chatID).
-		AddKeyboard(adminKeyboard).
-		SetText(adminMsg))
+		AddKeyboard(keyboard).
+		SetText(msg))
 	if err != nil && err.Error() != "" {
-		b.logger.Errorf("Failed to send admin message: %v", err)
+		b.logger.Errorf("Failed to send message: %v", err)
 	}
 }
 
 func (b *Bot) handleMessageCreated(ctx context.Context, u *schemes.MessageCreatedUpdate) {
 	userID := u.Message.Sender.UserId
 	messageID := u.Message.Body.Mid
-
-	userRepo := database.NewUserRepository(b.db)
-	userRole, err := userRepo.GetUserRole(userID)
-	if err != nil {
-		return
-	}
-
-	if userRole != "admin" {
-		b.sendErrorAndResetUpload(ctx, u, userID, notRulesMessage)
-		return
-	}
 
 	b.mu.Lock()
 	if b.processedMessages[messageID] {
@@ -256,6 +234,7 @@ func (b *Bot) downloadAndProcessFile(ctx context.Context, fileAtt *schemes.FileA
 
 func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpdate) {
 	sender := u.Callback.User
+	chatID := u.GetChatID()
 
 	var message string
 	switch u.Callback.Payload {
@@ -268,6 +247,15 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 	case "uploadSchedule":
 		message = sendScheduleFileMessage
 		b.pendingUploads[sender.UserId] = "schedule"
+	case "showSchedule":
+		message = "dfdfd"
+		err := b.sendScheduleForDay(ctx, chatID, 3)
+		if err != nil {
+			b.logger.Errorf("err %v", err)
+		}
+
+	// case "markScore":
+
 	default:
 		b.logger.Warnf("Unknown callback: %s", u.Callback.Payload)
 		return
@@ -298,7 +286,7 @@ func (b *Bot) sendErrorAndResetUpload(ctx context.Context, u *schemes.MessageCre
 
 	switch userRole {
 	case "admin":
-		b.sendAdminKeyboard(ctx, chatID)
+		b.sendKeyboard(ctx, GetAdminKeyboard(b.MaxAPI), chatID, adminMsg)
 	case "teacher":
 		_, err := b.MaxAPI.Messages.Send(ctx, maxbot.NewMessage().
 			SetChat(chatID).

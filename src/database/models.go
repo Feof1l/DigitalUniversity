@@ -2,7 +2,6 @@ package database
 
 import (
 	"time"
-
 )
 
 type Role struct {
@@ -42,14 +41,15 @@ type LessonType struct {
 }
 
 type Schedule struct {
-	ScheduleID   int64  `db:"schedule_id" json:"schedule_id"`
-	Weekday      int16  `db:"weekday" json:"weekday"`
+	ScheduleID   int64     `db:"schedule_id" json:"schedule_id"`
+	Weekday      int16     `db:"weekday" json:"weekday"`
 	StartTime    time.Time `db:"start_time" json:"start_time"`
-    EndTime      time.Time `db:"end_time" json:"end_time"`
-	SubjectID    int64  `db:"subject_id" json:"subject_id"`
-	TeacherID    int64  `db:"teacher_id" json:"teacher_id"`
-	GroupID      int64  `db:"group_id" json:"group_id"`
-	LessonTypeID int64  `db:"lesson_type_id" json:"lesson_type_id"`
+	EndTime      time.Time `db:"end_time" json:"end_time"`
+	ClassRoom    string    `db:"class_room" json:"class_room"`
+	SubjectID    int64     `db:"subject_id" json:"subject_id"`
+	TeacherID    int64     `db:"teacher_id" json:"teacher_id"`
+	GroupID      int64     `db:"group_id" json:"group_id"`
+	LessonTypeID int64     `db:"lesson_type_id" json:"lesson_type_id"`
 }
 
 type Grade struct {

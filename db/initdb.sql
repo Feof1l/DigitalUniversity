@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS schedule (
     weekday SMALLINT NOT NULL CHECK (
         weekday BETWEEN 1 AND 7
     ),
+    class_room VARCHAR(100),
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     subject_id INT NOT NULL REFERENCES subjects(subject_id),
@@ -85,7 +86,7 @@ VALUES (
         (
             SELECT role_id
             FROM roles
-            WHERE role_name = 'admin'
+            WHERE role_name = 'student'
         ),
         NULL
     ),
