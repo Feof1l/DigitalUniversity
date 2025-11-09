@@ -104,18 +104,39 @@ func (b *Bot) getGroupName(groupID int64) string {
 	return name
 }
 
-func (b *Bot) sendScheduleForDay(ctx context.Context, chatID int64, weekday int16) error {
-	entries, err := b.scheduleRepo.GetScheduleForDate(weekday)
+func (b *Bot) sendScheduleForDay(ctx context.Context, maxUserID int64, weekday int16) error {
+	userRole, err := b.getUserRole(maxUserID)
 	if err != nil {
-		b.logger.Errorf("Failed to get schedule for weekday %d: %v", weekday, err)
+		b.logger.Errorf("Failed to get user role: %v", err)
 		return err
 	}
 
+	var entries []database.Schedule
+
+	if userRole == "teacher" {
+		teacherID, err := b.userRepo.GetUserIDByMaxID(maxUserID)
+		if err != nil {
+			b.logger.Errorf("Failed to get teacher ID: %v", err)
+			return err
+		}
+		entries, err = b.scheduleRepo.GetScheduleForDateByTeacher(weekday, teacherID)
+		if err != nil {
+			b.logger.Errorf("Failed to get schedule for teacher %d, weekday %d: %v", teacherID, weekday, err)
+			return err
+		}
+	} else {
+		entries, err = b.scheduleRepo.GetScheduleForDate(weekday)
+		if err != nil {
+			b.logger.Errorf("Failed to get schedule for weekday %d: %v", weekday, err)
+			return err
+		}
+	}
+
 	text := b.formatSchedule(entries, weekday)
-	b.logger.Infof("Sending schedule for weekday %d to chat %d", weekday, chatID)
+	b.logger.Infof("Sending schedule for weekday %d to user %d", weekday, maxUserID)
 
 	prevDay, nextDay := b.calculateNavigationDays(weekday)
-	b.sendKeyboard(ctx, GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay), chatID, text)
+	b.sendKeyboard(ctx, GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay), maxUserID, text)
 
 	return nil
 }

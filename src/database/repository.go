@@ -58,26 +58,62 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 
 func (r *UserRepository) CreateOrUpdateStudent(tx *sqlx.Tx, userMaxID int64, firstName, lastName string, roleID, groupID int64) error {
 	fullName := firstName + " " + lastName
-	_, err := tx.Exec(`
-        INSERT INTO users (name, usermax_id, first_name, last_name, role_id, group_id)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (usermax_id) DO UPDATE
-        SET first_name = EXCLUDED.first_name,
-            last_name = EXCLUDED.last_name,
-            group_id = EXCLUDED.group_id`,
+
+	result, err := tx.Exec(`
+		UPDATE users
+		SET usermax_id = $1, name = $2
+		WHERE first_name = $3 AND last_name = $4 AND role_id = $5 AND group_id = $6`,
+		userMaxID, fullName, firstName, lastName, roleID, groupID)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected > 0 {
+		return nil
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO users (name, usermax_id, first_name, last_name, role_id, group_id)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (usermax_id) DO UPDATE
+		SET first_name = EXCLUDED.first_name,
+		    last_name = EXCLUDED.last_name,
+		    name = EXCLUDED.name,
+		    group_id = EXCLUDED.group_id`,
 		fullName, userMaxID, firstName, lastName, roleID, groupID)
+
 	return err
 }
 
 func (r *UserRepository) CreateOrUpdateTeacher(tx *sqlx.Tx, userMaxID int64, firstName, lastName string, roleID int64) error {
 	fullName := firstName + " " + lastName
-	_, err := tx.Exec(`
-        INSERT INTO users (name, usermax_id, first_name, last_name, role_id, group_id)
-        VALUES ($1, $2, $3, $4, $5, NULL)
-        ON CONFLICT (usermax_id) DO UPDATE
-        SET first_name = EXCLUDED.first_name,
-            last_name = EXCLUDED.last_name`,
+
+	result, err := tx.Exec(`
+		UPDATE users
+		SET usermax_id = $1, name = $2
+		WHERE first_name = $3 AND last_name = $4 AND role_id = $5 AND group_id IS NULL`,
+		userMaxID, fullName, firstName, lastName, roleID)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected > 0 {
+		return nil
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO users (name, usermax_id, first_name, last_name, role_id, group_id)
+		VALUES ($1, $2, $3, $4, $5, NULL)
+		ON CONFLICT (usermax_id) DO UPDATE
+		SET first_name = EXCLUDED.first_name,
+		    last_name = EXCLUDED.last_name,
+		    name = EXCLUDED.name`,
 		fullName, userMaxID, firstName, lastName, roleID)
+
 	return err
 }
 
@@ -86,7 +122,7 @@ func (r *UserRepository) CreateOrGetTeacher(tx *sqlx.Tx, firstName, lastName str
 
 	err := tx.Get(&teacherID,
 		`SELECT user_id FROM users
-		WHERE first_name = $1 AND last_name = $2 AND role_id = $3`,
+		WHERE first_name = $1 AND last_name = $2 AND role_id = $3 AND group_id IS NULL`,
 		firstName, lastName, teacherRoleID)
 
 	if err == nil {
@@ -94,18 +130,12 @@ func (r *UserRepository) CreateOrGetTeacher(tx *sqlx.Tx, firstName, lastName str
 	}
 
 	err = tx.Get(&teacherID,
-		`INSERT INTO users (name, first_name, last_name, role_id)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (usermax_id) DO UPDATE
-		SET first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name, role_id = EXCLUDED.role_id
+		`INSERT INTO users (name, first_name, last_name, role_id, group_id)
+		VALUES ($1, $2, $3, $4, NULL)
 		RETURNING user_id`,
 		firstName+" "+lastName, firstName, lastName, teacherRoleID)
 
-	if err != nil {
-		return 0, err
-	}
-
-	return teacherID, nil
+	return teacherID, err
 }
 
 func (r *UserRepository) GetTeacherIDByName(tx *sqlx.Tx, lastName, firstName string) (int64, error) {
@@ -141,6 +171,12 @@ func (r *UserRepository) GetTeacherName(teacherID int64) (string, error) {
 	var teacherName string
 	err := r.db.Get(&teacherName, `SELECT name FROM users WHERE user_id = $1`, teacherID)
 	return teacherName, err
+}
+
+func (r *UserRepository) GetUserIDByMaxID(userMaxID int64) (int64, error) {
+	var userID int64
+	err := r.db.Get(&userID, `SELECT user_id FROM users WHERE usermax_id = $1`, userMaxID)
+	return userID, err
 }
 
 type SubjectRepository struct {
@@ -222,5 +258,12 @@ func (r *ScheduleRepository) GetScheduleForDate(weekday int16) ([]Schedule, erro
 	var entries []Schedule
 	query := `SELECT * FROM schedule WHERE weekday = $1 ORDER BY start_time`
 	err := r.db.Select(&entries, query, weekday)
+	return entries, err
+}
+
+func (r *ScheduleRepository) GetScheduleForDateByTeacher(weekday int16, teacherID int64) ([]Schedule, error) {
+	var entries []Schedule
+	query := `SELECT * FROM schedule WHERE weekday = $1 AND teacher_id = $2 ORDER BY start_time`
+	err := r.db.Select(&entries, query, weekday, teacherID)
 	return entries, err
 }

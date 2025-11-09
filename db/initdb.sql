@@ -66,6 +66,30 @@ CREATE TABLE IF NOT EXISTS materials (
     file_url TEXT NOT NULL,
     uploaded_at TIMESTAMP DEFAULT NOW()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_teacher_unique ON users(first_name, last_name, role_id)
+WHERE group_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_student_unique ON users(first_name, last_name, role_id, group_id)
+WHERE group_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
+CREATE INDEX IF NOT EXISTS idx_users_group_id ON users(group_id);
+CREATE INDEX IF NOT EXISTS idx_users_first_last_name ON users(first_name, last_name);
+CREATE INDEX IF NOT EXISTS idx_users_role_first_last ON users(role_id, first_name, last_name);
+CREATE INDEX IF NOT EXISTS idx_schedule_weekday ON schedule(weekday);
+CREATE INDEX IF NOT EXISTS idx_schedule_teacher_id ON schedule(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_group_id ON schedule(group_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_subject_id ON schedule(subject_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_weekday_start_time ON schedule(weekday, start_time);
+CREATE INDEX IF NOT EXISTS idx_grades_student_id ON grades(student_id);
+CREATE INDEX IF NOT EXISTS idx_grades_teacher_id ON grades(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_grades_subject_id ON grades(subject_id);
+CREATE INDEX IF NOT EXISTS idx_grades_schedule_id ON grades(schedule_id);
+CREATE INDEX IF NOT EXISTS idx_grades_student_subject ON grades(student_id, subject_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON attendance(student_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_schedule_id ON attendance(schedule_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_schedule ON attendance(student_id, schedule_id);
+CREATE INDEX IF NOT EXISTS idx_subjects_teacher_id ON subjects(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_subjects_name ON subjects(subject_name);
+CREATE INDEX IF NOT EXISTS idx_materials_subject_id ON materials(subject_id);
 INSERT INTO roles (role_name)
 VALUES ('admin'),
     ('teacher'),
@@ -86,7 +110,7 @@ VALUES (
         (
             SELECT role_id
             FROM roles
-            WHERE role_name = 'student'
+            WHERE role_name = 'admin'
         ),
         NULL
     ),
@@ -103,6 +127,7 @@ VALUES (
         NULL
     ) ON CONFLICT (usermax_id) DO
 UPDATE
-SET role_id = EXCLUDED.role_id,
-    first_name = EXCLUDED.first_name,
-    last_name = EXCLUDED.last_name;
+SET first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    name = EXCLUDED.name,
+    role_id = EXCLUDED.role_id;

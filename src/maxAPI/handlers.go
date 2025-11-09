@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	maxbot "github.com/max-messenger/max-bot-api-client-go"
 	"github.com/max-messenger/max-bot-api-client-go/schemes"
@@ -18,6 +20,7 @@ const (
 	teachersMessage         = "Добро пожаловать, преподаватель! 👨‍🏫\nФункционал для преподавателей находится в разработке."
 	studentsMessage         = "Добро пожаловать, студент! 🎓\nФункционал для студентов находится в разработке."
 	fileNotFoundMessage     = "Файл не найден. Отправьте CSV файл."
+	multipleFilesMessage    = "Отправлено %d файла(ов). Пожалуйста, отправьте только один CSV файл за раз."
 	sendStudentsFileMessage = "Отправьте файл со списком студентов (с расширением .csv)."
 	sendTeachersFileMessage = "Отправьте файл с преподавателями (с расширением .csv)."
 	sendScheduleFileMessage = "Отправьте файл с расписанием (с расширением .csv)."
@@ -94,22 +97,36 @@ func (b *Bot) handleMessageCreated(ctx context.Context, u *schemes.MessageCreate
 	b.mu.Unlock()
 
 	if count == 1 {
-		go b.processFileUpload(context.Background(), fileAttachments[0], uploadType, userID)
-		return
+		go func() {
+			time.Sleep(200 * time.Millisecond)
+
+			b.mu.Lock()
+			totalFiles := b.uploadCounter[userID]
+			delete(b.uploadCounter, userID)
+			delete(b.pendingUploads, userID)
+			b.mu.Unlock()
+
+			if totalFiles > 1 {
+				b.sendErrorAndResetUpload(ctx, userID, fmt.Sprintf(multipleFilesMessage, totalFiles))
+				return
+			}
+
+			if err := b.downloadAndProcessFile(ctx, fileAttachments[0], uploadType); err != nil {
+				b.logger.Errorf("Failed to process file %s: %v", fileAttachments[0].Filename, err)
+				b.sendMessage(ctx, userID, fmt.Sprintf(errorMessage, err.Error()))
+				userRole, _ := b.getUserRole(userID)
+				b.sendKeyboardByRole(ctx, userID, userRole)
+				return
+			}
+
+			b.sendSuccessMessage(ctx, userID, uploadType)
+		}()
 	}
-
-	b.mu.Lock()
-	totalFiles := b.uploadCounter[userID]
-	delete(b.uploadCounter, userID)
-	delete(b.pendingUploads, userID)
-	b.mu.Unlock()
-
-	b.sendErrorAndResetUpload(ctx, userID, fmt.Sprintf("Отправлено %d файла(ов). Пожалуйста, отправьте только один CSV файл за раз.", totalFiles))
 }
 
 func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpdate) {
 	sender := u.Callback.User
-	chatID := u.GetChatID()
+	userID := sender.UserId
 
 	var message string
 	switch u.Callback.Payload {
@@ -123,11 +140,23 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 		message = sendScheduleFileMessage
 		b.pendingUploads[sender.UserId] = "schedule"
 	case "showSchedule":
-		if err := b.sendScheduleForDay(ctx, chatID, 1); err != nil {
+		currentWeekday := int16(time.Now().Weekday())
+		if currentWeekday == 0 {
+			currentWeekday = 7
+		}
+		if err := b.sendScheduleForDay(ctx, userID, currentWeekday); err != nil {
 			b.logger.Errorf("Failed to send schedule: %v", err)
 		}
 		return
 	default:
+		if strings.HasPrefix(u.Callback.Payload, "sch_day_") {
+			var day int16
+			fmt.Sscanf(u.Callback.Payload, "sch_day_%d", &day)
+			if err := b.sendScheduleForDay(ctx, userID, day); err != nil {
+				b.logger.Errorf("Failed to send schedule: %v", err)
+			}
+			return
+		}
 		b.logger.Warnf("Unknown callback: %s", u.Callback.Payload)
 		return
 	}
@@ -215,26 +244,6 @@ func (b *Bot) extractFileAttachments(attachments []interface{}) []*schemes.FileA
 		}
 	}
 	return fileAttachments
-}
-
-func (b *Bot) processFileUpload(ctx context.Context, fileAtt *schemes.FileAttachment, uploadType string, userID int64) {
-	defer func() {
-		b.mu.Lock()
-		delete(b.pendingUploads, userID)
-		delete(b.uploadCounter, userID)
-		b.mu.Unlock()
-	}()
-
-	if err := b.downloadAndProcessFile(ctx, fileAtt, uploadType); err != nil {
-		b.logger.Errorf("Failed to process file %s: %v", fileAtt.Filename, err)
-		b.sendMessage(ctx, userID, fmt.Sprintf(errorMessage, err.Error()))
-
-		userRole, _ := b.getUserRole(userID)
-		b.sendKeyboardByRole(ctx, userID, userRole)
-		return
-	}
-
-	b.sendSuccessMessage(ctx, userID, uploadType)
 }
 
 func (b *Bot) downloadAndProcessFile(ctx context.Context, fileAtt *schemes.FileAttachment, uploadType string) error {
