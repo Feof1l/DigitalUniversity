@@ -100,4 +100,8 @@ VALUES (
             WHERE role_name = 'admin'
         ),
         NULL
-    ) ON CONFLICT (usermax_id) DO NOTHING;
+    ) ON CONFLICT (usermax_id) DO
+UPDATE
+SET role_id = EXCLUDED.role_id,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name;

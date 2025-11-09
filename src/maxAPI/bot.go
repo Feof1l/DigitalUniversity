@@ -2,6 +2,7 @@ package maxAPI
 
 import (
 	"context"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	maxbot "github.com/max-messenger/max-bot-api-client-go"
@@ -9,6 +10,7 @@ import (
 
 	"digitalUniversity/config"
 	"digitalUniversity/logger"
+
 )
 
 type Bot struct {
@@ -17,6 +19,8 @@ type Bot struct {
 	logger *logger.Logger
 	MaxAPI *maxbot.Api
 	pendingUploads map[int64]string
+    processedMessages map[string]bool
+    mu             sync.Mutex
 }
 
 const (
@@ -42,7 +46,8 @@ func NewBot(config *config.MaxConfig, logger *logger.Logger, db *sqlx.DB, ctx co
         db:     db,
         logger: logger,
         MaxAPI: api,
-		pendingUploads: make(map[int64]string),
+        pendingUploads: make(map[int64]string),
+        processedMessages: make(map[string]bool),
     }, nil
 }
 

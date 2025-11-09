@@ -1,4 +1,4 @@
-package database
+package services
 
 import (
 	"encoding/csv"
@@ -6,26 +6,28 @@ import (
 	"strconv"
 
 	"github.com/jmoiron/sqlx"
+
+	"digitalUniversity/database"
 )
 
 type CSVImporter struct {
-    roleRepo       *RoleRepository
-    groupRepo      *GroupRepository
-    userRepo       *UserRepository
-    subjectRepo    *SubjectRepository
-    lessonTypeRepo *LessonTypeRepository
-    scheduleRepo   *ScheduleRepository
+    roleRepo       *database.RoleRepository
+    groupRepo      *database.GroupRepository
+    userRepo       *database.UserRepository
+    subjectRepo    *database.SubjectRepository
+    lessonTypeRepo *database.LessonTypeRepository
+    scheduleRepo   *database.ScheduleRepository
     db             *sqlx.DB
 }
 
 func NewCSVImporter(db *sqlx.DB) *CSVImporter {
     return &CSVImporter{
-        roleRepo:       NewRoleRepository(db),
-        groupRepo:      NewGroupRepository(db),
-        userRepo:       NewUserRepository(db),
-        subjectRepo:    NewSubjectRepository(db),
-        lessonTypeRepo: NewLessonTypeRepository(db),
-        scheduleRepo:   NewScheduleRepository(db),
+        roleRepo:       database.NewRoleRepository(db),
+        groupRepo:      database.NewGroupRepository(db),
+        userRepo:       database.NewUserRepository(db),
+        subjectRepo:    database.NewSubjectRepository(db),
+        lessonTypeRepo: database.NewLessonTypeRepository(db),
+        scheduleRepo:   database.NewScheduleRepository(db),
         db:             db,
     }
 }
