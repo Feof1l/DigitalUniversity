@@ -8,27 +8,27 @@ import (
 )
 
 const (
-	btnUploadStudents  = "Загрузить файл со студентами"
-	btnUploadTeachers  = "Загрузить файл с преподавателями"
-	btnUploadSchedule  = "Загрузить файл с расписанием"
+	btnUploadStudents = "Загрузить файл со студентами"
+	btnUploadTeachers = "Загрузить файл с преподавателями"
+	btnUploadSchedule = "Загрузить файл с расписанием"
 
-	btnShowSchedule     = "Показать расписание"
-	btnMarkAttendance   = "Отметить посещаемость"
-	btnMarkScore        = "Поставить оценку"
+	btnShowSchedule   = "Показать расписание"
+	btnMarkAttendance = "Отметить посещаемость"
+	btnMarkScore      = "Поставить оценку"
 
 	btnShowScore = "Посмотреть оценки"
 
 	btnPrev = "← Назад"
 	btnNext = "Вперёд →"
 
-	payloadUploadStudents  = "uploadStudents"
-	payloadUploadTeachers  = "uploadTeachers"
-	payloadUploadSchedule  = "uploadSchedule"
-	payloadShowSchedule    = "showSchedule"
-	payloadMarkAttendance  = "markAttendance"
-	payloadMarkScore       = "markScore"
-	payloadShowScore       = "showScore"
-	payloadScheduleDay     = "sch_day_%d"
+	payloadUploadStudents = "uploadStudents"
+	payloadUploadTeachers = "uploadTeachers"
+	payloadUploadSchedule = "uploadSchedule"
+	payloadShowSchedule   = "showSchedule"
+	payloadMarkAttendance = "markAttendance"
+	payloadMarkScore      = "markScore"
+	payloadShowScore      = "showScore"
+	payloadScheduleDay    = "sch_day_%d"
 )
 
 func GetAdminKeyboard(api *maxbot.Api) *maxbot.Keyboard {
@@ -42,15 +42,12 @@ func GetAdminKeyboard(api *maxbot.Api) *maxbot.Keyboard {
 func GetTeacherKeyboard(api *maxbot.Api) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().AddCallback(btnShowSchedule, schemes.NEGATIVE, payloadShowSchedule)
-	keyboard.AddRow().AddCallback(btnMarkAttendance, schemes.NEGATIVE, payloadMarkAttendance)
-	keyboard.AddRow().AddCallback(btnMarkScore, schemes.NEGATIVE, payloadMarkScore)
 	return keyboard
 }
 
 func GetStudentKeyboard(api *maxbot.Api) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().AddCallback(btnShowSchedule, schemes.NEGATIVE, payloadShowSchedule)
-	keyboard.AddRow().AddCallback(btnShowScore, schemes.NEGATIVE, payloadShowScore)
 	return keyboard
 }
 

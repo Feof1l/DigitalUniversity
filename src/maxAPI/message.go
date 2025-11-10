@@ -89,7 +89,7 @@ func (b *Bot) sendKeyboard(ctx context.Context, keyboard *maxbot.Keyboard, userI
 	_, err := b.MaxAPI.Messages.Send(ctx, maxbot.NewMessage().
 		SetUser(userID).
 		AddKeyboard(keyboard).
-		SetText(msg))
+		SetText(msg).SetFormat("markdown"))
 	if err != nil && err.Error() != "" {
 		b.logger.Errorf("Failed to send keyboard: %v", err)
 	}
