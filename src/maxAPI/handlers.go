@@ -27,6 +27,9 @@ const (
 	unknownMessageDefault   = "❓ Я не понимаю это сообщение.\n\nИспользуйте команду /start для начала работы с ботом."
 	unknownMessageWithStart = "%s\n\nПожалуйста, используйте команду /start для начала работы."
 	nextActionMessage       = "Выберите следующее действие:"
+	subjectsChooseMessage   = "Выберите дисциплину, по которой хотите проставить оценку"
+	groupsChooseMessage     = "Выберите нужную группу"
+	studentsChooseMessage   = "Выберите нужного студента"
 )
 
 func (b *Bot) handleBotStarted(ctx context.Context, u *schemes.BotStartedUpdate) {
@@ -137,15 +140,25 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 		if currentWeekday == 0 {
 			currentWeekday = 7
 		}
-		if err := b.sendScheduleForDay(ctx, userID, currentWeekday); err != nil {
+		if err := b.sendScheduleForDay(ctx, u, userID, currentWeekday); err != nil {
 			b.logger.Errorf("Failed to send schedule: %v", err)
 		}
 		return
+	case "markAttendance":
+		//b.sendKeyboard(ctx, GetAttendanceKeyboard(b.MaxAPI), userID, attendanceMessage)
+		b.sendSubjectsForTeacher(ctx, userID)
+	case "group": //, "Mathematical Analysis", "Algorithms and Data Structures", "Graph Theory", "Python Programming", "Databases", "Computer Networks", "Operating Systems", "Machine Learning", "Artificial Intelligence", "Automata Theory", "Probability Theory", "Linear Algebra", "Cryptography", "Numerical Methods", "Computational Geometry", "Discrete Mathematics", "Algorithm Optimization", "Mathematical Logic", "Web Development", "Mobile Development":
+		data := u.Message.Body.RawAttachments
+		_ = data
+
+		b.sendGroupsForTeacher(ctx, userID)
+	case "IT-101", "IT-102", "EC-201", "EC-202", "IS-301":
+
 	default:
 		if strings.HasPrefix(u.Callback.Payload, "sch_day_") {
 			var day int16
 			fmt.Sscanf(u.Callback.Payload, "sch_day_%d", &day)
-			if err := b.sendScheduleForDay(ctx, userID, day); err != nil {
+			if err := b.sendScheduleForDay(ctx, u, userID, day); err != nil {
 				b.logger.Errorf("Failed to send schedule: %v", err)
 			}
 			return

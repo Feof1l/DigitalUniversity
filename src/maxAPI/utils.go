@@ -183,3 +183,10 @@ func (b *Bot) getGroupName(groupID int64) string {
 	}
 	return name
 }
+
+func (b *Bot) getWeekdayName(weekday int16) string {
+	if name, exists := weekdayNames[weekday]; exists {
+		return name
+	}
+	return fmt.Sprintf("День %d", weekday)
+}

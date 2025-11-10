@@ -8,27 +8,27 @@ import (
 )
 
 const (
-	btnUploadStudents  = "Загрузить файл со студентами"
-	btnUploadTeachers  = "Загрузить файл с преподавателями"
-	btnUploadSchedule  = "Загрузить файл с расписанием"
+	btnUploadStudents = "Загрузить файл со студентами"
+	btnUploadTeachers = "Загрузить файл с преподавателями"
+	btnUploadSchedule = "Загрузить файл с расписанием"
 
-	btnShowSchedule     = "Показать расписание"
-	btnMarkAttendance   = "Отметить посещаемость"
-	btnMarkScore        = "Поставить оценку"
+	btnShowSchedule   = "Показать расписание"
+	btnMarkAttendance = "Отметить посещаемость"
+	btnMarkScore      = "Поставить оценку"
 
 	btnShowScore = "Посмотреть оценки"
 
 	btnPrev = "← Назад"
 	btnNext = "Вперёд →"
 
-	payloadUploadStudents  = "uploadStudents"
-	payloadUploadTeachers  = "uploadTeachers"
-	payloadUploadSchedule  = "uploadSchedule"
-	payloadShowSchedule    = "showSchedule"
-	payloadMarkAttendance  = "markAttendance"
-	payloadMarkScore       = "markScore"
-	payloadShowScore       = "showScore"
-	payloadScheduleDay     = "sch_day_%d"
+	payloadUploadStudents = "uploadStudents"
+	payloadUploadTeachers = "uploadTeachers"
+	payloadUploadSchedule = "uploadSchedule"
+	payloadShowSchedule   = "showSchedule"
+	payloadMarkAttendance = "markAttendance"
+	payloadMarkScore      = "markScore"
+	payloadShowScore      = "showScore"
+	payloadScheduleDay    = "sch_day_%d"
 )
 
 func GetAdminKeyboard(api *maxbot.Api) *maxbot.Keyboard {
@@ -59,5 +59,19 @@ func GetScheduleKeyboard(api *maxbot.Api, prev, next int16) *maxbot.Keyboard {
 	keyboard.AddRow().
 		AddCallback(btnPrev, schemes.NEGATIVE, fmt.Sprintf(payloadScheduleDay, prev)).
 		AddCallback(btnNext, schemes.NEGATIVE, fmt.Sprintf(payloadScheduleDay, next))
+	return keyboard
+}
+
+func GetComplexKeyboard(api *maxbot.Api, entry []string) *maxbot.Keyboard {
+	keyboard := api.Messages.NewKeyboardBuilder()
+
+	for i := 0; i < len(entry); i += 2 {
+		row := keyboard.AddRow()
+		row.AddCallback(entry[i], schemes.POSITIVE, "group")
+		if i+1 < len(entry) {
+			row.AddCallback(entry[i+1], schemes.POSITIVE, "group")
+		}
+	}
+
 	return keyboard
 }

@@ -157,6 +157,15 @@ func (r *UserRepository) GetUserByMaxID(userMaxID int64) (*User, error) {
 	return user, nil
 }
 
+func (r *UserRepository) GetUsersByGroupID(groupID int64) ([]*User, error) {
+	users := []*User{}
+	err := r.db.Select(users, `SELECT * FROM users WHERE usegroup_idrmax_id = $1`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 func (r *UserRepository) GetUserRole(userMaxID int64) (string, error) {
 	var roleName string
 	err := r.db.Get(&roleName, `
@@ -265,5 +274,23 @@ func (r *ScheduleRepository) GetScheduleForDateByTeacher(weekday int16, teacherI
 	var entries []Schedule
 	query := `SELECT * FROM schedule WHERE weekday = $1 AND teacher_id = $2 ORDER BY start_time`
 	err := r.db.Select(&entries, query, weekday, teacherID)
+	return entries, err
+}
+
+func (r *ScheduleRepository) GetScheduleByTeacher(teacherID int64) ([]Schedule, error) {
+	var entries []Schedule
+	query := `SELECT * FROM schedule WHERE  teacher_id = $1 ORDER BY start_time`
+	err := r.db.Select(&entries, query, teacherID)
+	return entries, err
+}
+
+type AttendanceRepository struct {
+	db *sqlx.DB
+}
+
+func (r *AttendanceRepository) GetAttendanceByTeacher(teacherID int64) ([]Attendance, error) {
+	var entries []Attendance
+	query := `SELECT * FROM attendance WHERE teacher_id = $1 ORDER BY mark_time`
+	err := r.db.Select(&entries, query, teacherID)
 	return entries, err
 }

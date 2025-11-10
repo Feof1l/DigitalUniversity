@@ -131,3 +131,6 @@ SET first_name = EXCLUDED.first_name,
     last_name = EXCLUDED.last_name,
     name = EXCLUDED.name,
     role_id = EXCLUDED.role_id;
+
+
+SELECT * FROM schedule WHERE  teacher_id = 83 ORDER BY start_time

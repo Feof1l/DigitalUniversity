@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"digitalUniversity/database"
+
+	"github.com/max-messenger/max-bot-api-client-go/schemes"
 )
 
 const (
@@ -41,13 +43,6 @@ func (b *Bot) formatSchedule(entries []database.Schedule, weekday int16) string 
 	return strings.TrimSpace(sb.String())
 }
 
-func (b *Bot) getWeekdayName(weekday int16) string {
-	if name, exists := weekdayNames[weekday]; exists {
-		return name
-	}
-	return fmt.Sprintf("День %d", weekday)
-}
-
 func (b *Bot) appendScheduleEntry(sb *strings.Builder, index int, entry database.Schedule) {
 	subjectName := b.getSubjectName(entry.SubjectID)
 	lessonTypeName := b.getLessonTypeName(entry.LessonTypeID)
@@ -69,7 +64,7 @@ func (b *Bot) appendScheduleEntry(sb *strings.Builder, index int, entry database
 	)
 }
 
-func (b *Bot) sendScheduleForDay(ctx context.Context, maxUserID int64, weekday int16) error {
+func (b *Bot) sendScheduleForDay(ctx context.Context, u *schemes.MessageCallbackUpdate, maxUserID int64, weekday int16) error {
 	userRole, err := b.getUserRole(maxUserID)
 	if err != nil {
 		b.logger.Errorf("Failed to get user role: %v", err)
@@ -91,7 +86,6 @@ func (b *Bot) sendScheduleForDay(ctx context.Context, maxUserID int64, weekday i
 		}
 	} else {
 		entries, err = b.scheduleRepo.GetScheduleForDate(weekday)
-		b.logger.Infof("Sending schedule for weekday %d to user %d %v", weekday, maxUserID, entries)
 		if err != nil {
 			b.logger.Errorf("Failed to get schedule for weekday %d: %v", weekday, err)
 			return err
@@ -102,6 +96,46 @@ func (b *Bot) sendScheduleForDay(ctx context.Context, maxUserID int64, weekday i
 	b.logger.Infof("Sending schedule for weekday %d to user %d", weekday, maxUserID)
 
 	prevDay, nextDay := b.calculateNavigationDays(weekday)
+
+	// b.logger.Infof("aaaaaaaaaaaaaaaaa %s: %v %v", b.scheduleMessageIDs[maxUserID], maxUserID, u.Message.Body.Mid)
+	// if msgID, exists := b.scheduleMessageIDs[maxUserID]; exists {
+
+	// 	mID, err := strconv.Atoi(msgID)
+	// 	if err != nil {
+	// 		b.logger.Errorf("failed to convert msgID %v", err)
+	// 	}
+	// 	err = b.MaxAPI.Messages.EditMessage(ctx, int64(mID), maxbot.NewMessage().
+	// 		SetUser(maxUserID).
+	// 		AddKeyboard(GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay)).
+	// 		SetText(text))
+
+	// 	if err != nil {
+	// 		b.logger.Errorf("Failed to edit message %s for user %d: %v", msgID, maxUserID, err)
+	// 		delete(b.scheduleMessageIDs, maxUserID)
+	// 		b.sendKeyboard(ctx, GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay), maxUserID, text)
+
+	// 		//return b.sendNewScheduleMessage(ctx, maxUserID, weekday, text, keyboard)
+	// 	}
+	// 	return nil
+	// } else {
+	// 	//delete(b.scheduleMessageIDs, maxUserID)
+
+	// 	//b.sendKeyboard(ctx, GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay), maxUserID, text)
+
+	// 	id, err := b.MaxAPI.Messages.Send(ctx, maxbot.NewMessage().
+	// 		SetUser(maxUserID).
+	// 		AddKeyboard(GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay)).
+	// 		SetText(text))
+	// 	b.logger.Errorf("dsdsds %s: %v %v %v", msgID, maxUserID, u.Message.Body.Mid, id)
+
+	// 	if err != nil && err.Error() != "" {
+	// 		b.logger.Errorf("Failed to send keyboard: %v", err)
+	// 	}
+	// 	ids:=u.Message.Body.
+
+	// 	b.scheduleMessageIDs[maxUserID] = u.Message.Body.Mid
+	// }
+
 	b.sendKeyboard(ctx, GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay), maxUserID, text)
 
 	return nil

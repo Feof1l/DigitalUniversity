@@ -33,6 +33,9 @@ type Bot struct {
 	subjectRepo    *database.SubjectRepository
 	lessonTypeRepo *database.LessonTypeRepository
 	scheduleRepo   *database.ScheduleRepository
+	attendanceRepo *database.AttendanceRepository
+
+	scheduleMessageIDs map[int64]string
 }
 
 func NewBot(cfg *config.MaxConfig, log *logger.Logger, db *sqlx.DB, ctx context.Context) (*Bot, error) {
@@ -57,11 +60,12 @@ func NewBot(cfg *config.MaxConfig, log *logger.Logger, db *sqlx.DB, ctx context.
 		processedMessages: make(map[string]bool),
 		uploadCounter:     make(map[int64]int),
 
-		userRepo:       database.NewUserRepository(db),
-		groupRepo:      database.NewGroupRepository(db),
-		subjectRepo:    database.NewSubjectRepository(db),
-		lessonTypeRepo: database.NewLessonTypeRepository(db),
-		scheduleRepo:   database.NewScheduleRepository(db),
+		userRepo:           database.NewUserRepository(db),
+		groupRepo:          database.NewGroupRepository(db),
+		subjectRepo:        database.NewSubjectRepository(db),
+		lessonTypeRepo:     database.NewLessonTypeRepository(db),
+		scheduleRepo:       database.NewScheduleRepository(db),
+		scheduleMessageIDs: make(map[int64]string),
 	}, nil
 }
 
