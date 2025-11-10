@@ -60,12 +60,12 @@ func NewBot(cfg *config.MaxConfig, log *logger.Logger, db *sqlx.DB, ctx context.
 		processedMessages: make(map[string]bool),
 		uploadCounter:     make(map[int64]int),
 
-		userRepo:           database.NewUserRepository(db),
-		groupRepo:          database.NewGroupRepository(db),
-		subjectRepo:        database.NewSubjectRepository(db),
-		lessonTypeRepo:     database.NewLessonTypeRepository(db),
-		scheduleRepo:       database.NewScheduleRepository(db),
-		scheduleMessageIDs: make(map[int64]string),
+		userRepo:       database.NewUserRepository(db),
+		groupRepo:      database.NewGroupRepository(db),
+		subjectRepo:    database.NewSubjectRepository(db),
+		lessonTypeRepo: database.NewLessonTypeRepository(db),
+		scheduleRepo:   database.NewScheduleRepository(db),
+		//scheduleMessageIDs: make(map[int64]string), подаруземавалась как мапа хранения айдишников сообщений для редакции
 	}, nil
 }
 

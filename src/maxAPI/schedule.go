@@ -97,6 +97,7 @@ func (b *Bot) sendScheduleForDay(ctx context.Context, u *schemes.MessageCallback
 
 	prevDay, nextDay := b.calculateNavigationDays(weekday)
 
+	//Попытки редактировать сообщение, может быть будет полезно
 	// b.logger.Infof("aaaaaaaaaaaaaaaaa %s: %v %v", b.scheduleMessageIDs[maxUserID], maxUserID, u.Message.Body.Mid)
 	// if msgID, exists := b.scheduleMessageIDs[maxUserID]; exists {
 

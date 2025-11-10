@@ -59,11 +59,6 @@ func (b *Bot) sendStudentsFromGroup(ctx context.Context, groupName string, maxUs
 		return fmt.Errorf("у вас недостаточно прав")
 	}
 
-	// teacherID, err := b.userRepo.GetUserIDByMaxID(maxUserID)
-	// if err != nil {
-	// 	b.logger.Errorf("Failed to get teacher ID: %v", err)
-	// 	return err
-	// }
 	tx, err := b.db.Beginx()
 	if err != nil {
 		return err
