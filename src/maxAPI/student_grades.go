@@ -15,7 +15,7 @@ const (
 	selectSubjectForGradesMsg = "Выберите предмет для просмотра оценок:"
 	noGradesMsg               = "По предмету **%s** оценок пока нет."
 	gradesListHeader          = "📊 Оценки по предмету **%s**:\n\n"
-	gradeEntryFormat          = "**%d** — %s\n"
+	payloadPrefixShowGrades   = "show_grades_"
 )
 
 func (b *Bot) handleShowGradesStart(ctx context.Context, userID int64, callbackID string) error {
@@ -63,10 +63,13 @@ func (b *Bot) handleShowGradesStart(ctx context.Context, userID int64, callbackI
 }
 
 func (b *Bot) handleShowGradesCallback(ctx context.Context, userID int64, callbackID, payload string) error {
-	parts := strings.Split(payload, "_")
-
-	if len(parts) < 4 {
+	if !strings.HasPrefix(payload, payloadPrefixShowGrades) {
 		return fmt.Errorf("invalid show_grades callback payload: %s", payload)
+	}
+
+	parts := strings.Split(payload, "_")
+	if len(parts) < 4 {
+		return fmt.Errorf("invalid show_grades callback payload format: %s", payload)
 	}
 
 	if parts[2] == "subj" {
@@ -118,16 +121,19 @@ func (b *Bot) handleSubjectSelectedForGrades(ctx context.Context, userID int64, 
 	return err
 }
 
+func (b *Bot) formatGradeDateTime(gradeDate time.Time) (dateStr, timeStr string) {
+	moscowTime := gradeDate.Add(3 * time.Hour)
+	dateStr = moscowTime.Format("02.01.2006")
+	timeStr = moscowTime.Format("15:04")
+	return
+}
+
 func (b *Bot) formatGradesList(grades []database.Grade, subjectName string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, gradesListHeader, subjectName)
 
 	for _, grade := range grades {
-		moscowTime := grade.GradeDate.Add(3 * time.Hour)
-
-		dateStr := moscowTime.Format("02.01.2006")
-		timeStr := moscowTime.Format("15:04")
-
+		dateStr, timeStr := b.formatGradeDateTime(grade.GradeDate)
 		fmt.Fprintf(&sb, "`%s %s` — **%d**\n", dateStr, timeStr, grade.GradeValue)
 	}
 

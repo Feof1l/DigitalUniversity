@@ -28,11 +28,14 @@ func NewGroupRepository(db *sqlx.DB) *GroupRepository {
 
 func (r *GroupRepository) CreateOrGetGroup(tx *sqlx.Tx, groupName string) (int64, error) {
 	var groupID int64
-	err := tx.Get(&groupID, `
+	_, err := tx.Exec(`
         INSERT INTO groups (group_name)
         VALUES ($1)
-        ON CONFLICT (group_name) DO UPDATE SET group_name = EXCLUDED.group_name
-        RETURNING group_id`, groupName)
+        ON CONFLICT (group_name) DO NOTHING`, groupName)
+	if err != nil {
+		return 0, err
+	}
+	err = tx.Get(&groupID, `SELECT group_id FROM groups WHERE group_name = $1`, groupName)
 	return groupID, err
 }
 
@@ -127,12 +130,12 @@ func (r *UserRepository) CreateOrGetTeacher(tx *sqlx.Tx, firstName, lastName str
 		return teacherID, nil
 	}
 
-	err = tx.Get(&teacherID,
-		`INSERT INTO users (name, first_name, last_name, role_id, group_id)
-		VALUES ($1, $2, $3, $4, NULL)
-		RETURNING user_id`,
+	row := tx.QueryRow(`
+        INSERT INTO users (name, first_name, last_name, role_id, group_id)
+        VALUES ($1, $2, $3, $4, NULL)
+        RETURNING user_id`,
 		firstName+" "+lastName, firstName, lastName, teacherRoleID)
-
+	err = row.Scan(&teacherID)
 	return teacherID, err
 }
 
@@ -362,4 +365,16 @@ func (r *GradeRepository) GetGradesByStudent(studentID int64) ([]Grade, error) {
 	query := `SELECT * FROM grades WHERE student_id = $1 ORDER BY grade_date DESC`
 	err := r.db.Select(&grades, query, studentID)
 	return grades, err
+}
+
+func (r *GradeRepository) GetStudentNameByID(studentID int64) (string, error) {
+	var studentName string
+	err := r.db.Get(&studentName, `SELECT name FROM users WHERE user_id = $1`, studentID)
+	return studentName, err
+}
+
+func (r *GradeRepository) GetSubjectIDByScheduleID(scheduleID int64) (int64, error) {
+	var subjectID int64
+	err := r.db.Get(&subjectID, `SELECT subject_id FROM schedule WHERE schedule_id = $1`, scheduleID)
+	return subjectID, err
 }

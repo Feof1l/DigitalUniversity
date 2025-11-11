@@ -33,6 +33,7 @@ func (app *Application) Configure(cfg *config.Config, logger *logger.Logger, ctx
 
 	b, err := maxAPI.NewBot(&cfg.MaxAPI, logger, db, ctx)
 	if err != nil {
+		_ = db.Close()
 		return err
 	}
 	app.Bot = b

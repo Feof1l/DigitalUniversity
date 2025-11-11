@@ -31,9 +31,8 @@ func main() {
 	defer cancel()
 
 	app := application.NewApplication()
-	err = app.Configure(cfg, logger, ctx)
 	if err := app.Configure(cfg, logger, ctx); err != nil {
-		logger.Errorf("failed to configure application: %v", err)
+		logger.Fatalf("failed to configure application: %v", err)
 	}
 
 	logger.Info("bot has been successfully created and configured")

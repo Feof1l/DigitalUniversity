@@ -95,7 +95,10 @@ func (imp *CSVImporter) ImportTeachers(filePath string) error {
 	for i := 1; i < len(records); i++ {
 		record := records[i]
 
-		userMaxID, _ := strconv.ParseInt(record[0], 10, 64)
+		userMaxID, err := strconv.ParseInt(record[0], 10, 64)
+		if err != nil {
+			return err
+		}
 		lastName := record[1]
 		firstName := record[2]
 

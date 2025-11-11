@@ -122,6 +122,7 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 	sender := u.Callback.User
 	userID := sender.UserId
 	callbackID := u.Callback.CallbackID
+	payload := u.Callback.Payload
 
 	messageID := ""
 	if u.Message != nil {
@@ -135,77 +136,79 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 	}
 
 	b.logger.Debugf("Callback received: payload=%s, callbackID=%s, userID=%d, messageID=%s",
-		u.Callback.Payload, callbackID, userID, messageID)
+		payload, callbackID, userID, messageID)
 
-	var message string
-
-	switch u.Callback.Payload {
-	case "uploadStudents":
-		message = sendStudentsFileMessage
-		b.pendingUploads[sender.UserId] = "students"
-	case "uploadTeachers":
-		message = sendTeachersFileMessage
-		b.pendingUploads[sender.UserId] = "teachers"
-	case "uploadSchedule":
-		message = sendScheduleFileMessage
-		b.pendingUploads[sender.UserId] = "schedule"
-	case "showSchedule":
-		currentWeekday := int16(time.Now().Weekday())
-		if currentWeekday == 0 {
-			currentWeekday = 7
+	if msg, uploadType := b.getUploadMessage(payload); msg != "" {
+		b.pendingUploads[userID] = uploadType
+		if err := b.sendMessage(ctx, userID, msg); err != nil {
+			b.logger.Errorf("Failed to send callback response: %v", err)
 		}
-		if err := b.sendScheduleForDay(ctx, userID, callbackID, currentWeekday); err != nil {
-			b.logger.Errorf("Failed to send schedule: %v", err)
-		}
-		return
-	case "markGrade":
-		if err := b.handleMarkGradeStart(ctx, userID, callbackID); err != nil {
-			b.logger.Errorf("Failed to start grade marking: %v", err)
-		}
-		return
-	case "showScore":
-		if err := b.handleShowGradesStart(ctx, userID, callbackID); err != nil {
-			b.logger.Errorf("Failed to show grades: %v", err)
-		}
-		return
-	case "backToMenu":
-		if err := b.handleBackToMenu(ctx, userID, callbackID); err != nil {
-			b.logger.Errorf("Failed to return to menu: %v", err)
-		}
-		return
-	default:
-		if strings.HasPrefix(u.Callback.Payload, "sch_day_") {
-			var day int16
-			fmt.Sscanf(u.Callback.Payload, "sch_day_%d", &day)
-
-			b.logger.Debugf("Processing schedule navigation: day=%d, callbackID=%s", day, callbackID)
-
-			if err := b.answerScheduleCallback(ctx, userID, callbackID, day); err != nil {
-				b.logger.Errorf("Failed to answer callback: %v", err)
-			}
-			return
-		}
-
-		if strings.HasPrefix(u.Callback.Payload, "grade_") {
-			if err := b.handleGradeCallback(ctx, userID, callbackID, u.Callback.Payload); err != nil {
-				b.logger.Errorf("Failed to handle grade callback: %v", err)
-			}
-			return
-		}
-
-		if strings.HasPrefix(u.Callback.Payload, "show_grades_") {
-			if err := b.handleShowGradesCallback(ctx, userID, callbackID, u.Callback.Payload); err != nil {
-				b.logger.Errorf("Failed to handle show grades callback: %v", err)
-			}
-			return
-		}
-
-		b.logger.Warnf("Unknown callback: %s", u.Callback.Payload)
 		return
 	}
 
-	if err := b.sendMessage(ctx, sender.UserId, message); err != nil {
-		b.logger.Errorf("Failed to send callback response: %v", err)
+	switch {
+	case payload == "showSchedule":
+		b.handleShowSchedule(ctx, userID, callbackID)
+	case payload == "markGrade":
+		b.handleMarkGrade(ctx, userID, callbackID)
+	case payload == "showScore":
+		b.handleShowScore(ctx, userID, callbackID)
+	case payload == "backToMenu":
+		b.handleBackToMenu(ctx, userID, callbackID)
+	case strings.HasPrefix(payload, "sch_day_"):
+		b.handleScheduleNavigation(ctx, userID, callbackID, payload)
+	case strings.HasPrefix(payload, "grade_"):
+		b.handleGradeCallback(ctx, userID, callbackID, payload)
+	case strings.HasPrefix(payload, "show_grades_"):
+		b.handleShowGradesCallback(ctx, userID, callbackID, payload)
+	default:
+		b.logger.Warnf("Unknown callback: %s", payload)
+	}
+}
+
+func (b *Bot) getUploadMessage(payload string) (string, string) {
+	switch payload {
+	case "uploadStudents":
+		return sendStudentsFileMessage, "students"
+	case "uploadTeachers":
+		return sendTeachersFileMessage, "teachers"
+	case "uploadSchedule":
+		return sendScheduleFileMessage, "schedule"
+	default:
+		return "", ""
+	}
+}
+
+func (b *Bot) handleShowSchedule(ctx context.Context, userID int64, callbackID string) {
+	currentWeekday := int16(time.Now().Weekday())
+	if currentWeekday == 0 {
+		currentWeekday = 7
+	}
+	if err := b.sendScheduleForDay(ctx, userID, callbackID, currentWeekday); err != nil {
+		b.logger.Errorf("Failed to send schedule: %v", err)
+	}
+}
+
+func (b *Bot) handleMarkGrade(ctx context.Context, userID int64, callbackID string) {
+	if err := b.handleMarkGradeStart(ctx, userID, callbackID); err != nil {
+		b.logger.Errorf("Failed to start grade marking: %v", err)
+	}
+}
+
+func (b *Bot) handleShowScore(ctx context.Context, userID int64, callbackID string) {
+	if err := b.handleShowGradesStart(ctx, userID, callbackID); err != nil {
+		b.logger.Errorf("Failed to show grades: %v", err)
+	}
+}
+
+func (b *Bot) handleScheduleNavigation(ctx context.Context, userID int64, callbackID, payload string) {
+	var day int16
+	fmt.Sscanf(payload, "sch_day_%d", &day)
+
+	b.logger.Debugf("Processing schedule navigation: day=%d, callbackID=%s", day, callbackID)
+
+	if err := b.answerScheduleCallback(ctx, userID, callbackID, day); err != nil {
+		b.logger.Errorf("Failed to answer callback: %v", err)
 	}
 }
 
@@ -216,20 +219,8 @@ func (b *Bot) handleBackToMenu(ctx context.Context, userID int64, callbackID str
 		return err
 	}
 
-	var keyboard *maxbot.Keyboard
-	var menuText string
-
-	switch userRole {
-	case "admin":
-		keyboard = GetAdminKeyboard(b.MaxAPI)
-		menuText = mainMenuAdminMsg
-	case "teacher":
-		keyboard = GetTeacherKeyboard(b.MaxAPI)
-		menuText = mainMenuTeacherMsg
-	case "student":
-		keyboard = GetStudentKeyboard(b.MaxAPI)
-		menuText = mainMenuStudentMsg
-	default:
+	keyboard, menuText := b.getMenuByRole(userRole)
+	if keyboard == nil {
 		b.logger.Warnf("Unknown role: %s", userRole)
 		return fmt.Errorf("unknown role: %s", userRole)
 	}
@@ -250,6 +241,19 @@ func (b *Bot) handleBackToMenu(ctx context.Context, userID int64, callbackID str
 	return nil
 }
 
+func (b *Bot) getMenuByRole(role string) (*maxbot.Keyboard, string) {
+	switch role {
+	case "admin":
+		return GetAdminKeyboard(b.MaxAPI), mainMenuAdminMsg
+	case "teacher":
+		return GetTeacherKeyboard(b.MaxAPI), mainMenuTeacherMsg
+	case "student":
+		return GetStudentKeyboard(b.MaxAPI), mainMenuStudentMsg
+	default:
+		return nil, ""
+	}
+}
+
 func (b *Bot) handleUnexpectedMessage(ctx context.Context, userID int64) {
 	userRole, err := b.getUserRole(userID)
 	if err != nil {
@@ -258,14 +262,10 @@ func (b *Bot) handleUnexpectedMessage(ctx context.Context, userID int64) {
 		return
 	}
 
-	switch userRole {
-	case "admin":
-		b.sendKeyboard(ctx, GetAdminKeyboard(b.MaxAPI), userID, unknownMessage)
-	case "teacher":
-		b.sendKeyboard(ctx, GetTeacherKeyboard(b.MaxAPI), userID, unknownMessage)
-	case "student":
-		b.sendKeyboard(ctx, GetStudentKeyboard(b.MaxAPI), userID, unknownMessage)
-	default:
+	keyboard, _ := b.getMenuByRole(userRole)
+	if keyboard != nil {
+		b.sendKeyboard(ctx, keyboard, userID, unknownMessage)
+	} else {
 		b.sendMessage(ctx, userID, unknownMessageDefault)
 	}
 

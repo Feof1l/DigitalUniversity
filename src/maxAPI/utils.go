@@ -23,7 +23,11 @@ func (b *Bot) downloadFile(ctx context.Context, fileAtt *schemes.FileAttachment)
 		return "", err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -124,29 +128,16 @@ func (b *Bot) downloadAndProcessFile(ctx context.Context, fileAtt *schemes.FileA
 
 func (b *Bot) getNearestDateForWeekday(targetWeekday int16) time.Time {
 	now := time.Now().Local()
-	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
-	var goWeekday time.Weekday
-	if targetWeekday == 7 {
-		goWeekday = time.Sunday
-	} else {
-		goWeekday = time.Weekday(targetWeekday)
+	goWeekday := time.Weekday(targetWeekday % 7)
+
+	daysAhead := int(goWeekday - today.Weekday())
+	if daysAhead < 0 {
+		daysAhead += 7
 	}
 
-	daysDiff := int(goWeekday - now.Weekday())
-	if daysDiff < 0 {
-		daysDiff += 7
-	}
-
-	monday := now.AddDate(0, 0, -int(now.Weekday())+1)
-	if now.Weekday() == time.Sunday {
-		monday = now.AddDate(0, 0, -6)
-	}
-
-	if targetWeekday == 7 {
-		return monday.AddDate(0, 0, 6)
-	}
-	return monday.AddDate(0, 0, int(targetWeekday-1))
+	return today.AddDate(0, 0, daysAhead)
 }
 
 func (b *Bot) getSubjectName(subjectID int64) string {

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 
@@ -23,7 +25,11 @@ type DatabaseConfig struct {
 }
 
 func Load() (*Config, error) {
-	_ = godotenv.Load(".env")
+	if err := godotenv.Load(".env"); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+	}
 
 	var cfg Config
 	if err := env.Parse(&cfg); err != nil {

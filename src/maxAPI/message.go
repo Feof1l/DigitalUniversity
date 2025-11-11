@@ -39,16 +39,16 @@ func (b *Bot) sendSuccessMessage(ctx context.Context, userID int64, uploadType s
 }
 
 func (b *Bot) getSuccessMessage(uploadType string) string {
-	switch uploadType {
-	case "students":
-		return studentsSuccessMessage
-	case "teachers":
-		return teachersSuccessMessage
-	case "schedule":
-		return scheduleSuccessMessage
-	default:
-		return defaultSuccessMessage
+	messages := map[string]string{
+		"students": studentsSuccessMessage,
+		"teachers": teachersSuccessMessage,
+		"schedule": scheduleSuccessMessage,
 	}
+
+	if msg, exists := messages[uploadType]; exists {
+		return msg
+	}
+	return defaultSuccessMessage
 }
 
 func (b *Bot) sendKeyboard(ctx context.Context, keyboard *maxbot.Keyboard, userID int64, msg string) {

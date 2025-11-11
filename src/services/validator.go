@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type FileType string
@@ -104,7 +105,7 @@ func headersMatch(actual, expected []string) bool {
 	}
 
 	for i, exp := range expected {
-		if actual[i] != exp {
+		if len(actual) <= i || !strings.EqualFold(actual[i], exp) {
 			return false
 		}
 	}

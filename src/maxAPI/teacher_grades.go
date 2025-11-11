@@ -59,8 +59,11 @@ func (b *Bot) handleMarkGradeStart(ctx context.Context, userID int64, callbackID
 }
 
 func (b *Bot) handleGradeCallback(ctx context.Context, userID int64, callbackID, payload string) error {
-	parts := strings.Split(payload, "_")
+	if !strings.HasPrefix(payload, "grade_") {
+		return fmt.Errorf("invalid grade callback payload: %s", payload)
+	}
 
+	parts := strings.Split(payload, "_")
 	if len(parts) < 2 {
 		return fmt.Errorf("invalid grade callback payload: %s", payload)
 	}
@@ -71,7 +74,7 @@ func (b *Bot) handleGradeCallback(ctx context.Context, userID int64, callbackID,
 	case "grp":
 		return b.handleGroupSelected(ctx, userID, callbackID, payload)
 	case "stud":
-		if len(parts) >= 3 && parts[2] == "page" {
+		if len(parts) >= 4 && parts[2] == "page" {
 			return b.handleStudentPageNavigation(ctx, userID, callbackID, payload)
 		}
 		return b.handleStudentSelected(ctx, userID, callbackID, payload)
@@ -87,7 +90,11 @@ func (b *Bot) handleGradeCallback(ctx context.Context, userID int64, callbackID,
 func (b *Bot) handleStudentPageNavigation(ctx context.Context, _ int64, callbackID, payload string) error {
 	var subjectID, groupID int64
 	var page, totalPages int
-	fmt.Sscanf(payload, "grade_stud_page_%d_%d_%d_%d", &subjectID, &groupID, &page, &totalPages)
+	n, err := fmt.Sscanf(payload, "grade_stud_page_%d_%d_%d_%d", &subjectID, &groupID, &page, &totalPages)
+	if n != 4 || err != nil {
+		b.logger.Errorf("invalid page navigation payload: %s", payload)
+		return err
+	}
 
 	students, err := b.gradeRepo.GetStudentsByGroup(groupID)
 	if err != nil {
@@ -218,8 +225,7 @@ func (b *Bot) handleScheduleSelected(ctx context.Context, _ int64, callbackID, p
 	var scheduleID, studentID int64
 	fmt.Sscanf(payload, "grade_sch_%d_%d", &scheduleID, &studentID)
 
-	var studentName string
-	err := b.db.Get(&studentName, `SELECT name FROM users WHERE user_id = $1`, studentID)
+	studentName, err := b.gradeRepo.GetStudentNameByID(studentID)
 	if err != nil {
 		b.logger.Errorf("Failed to get student name: %v", err)
 		studentName = "студенту"
@@ -254,8 +260,7 @@ func (b *Bot) handleGradeValueSelected(ctx context.Context, userID int64, callba
 		return err
 	}
 
-	var subjectID int64
-	err = b.db.Get(&subjectID, `SELECT subject_id FROM schedule WHERE schedule_id = $1`, scheduleID)
+	subjectID, err := b.gradeRepo.GetSubjectIDByScheduleID(scheduleID)
 	if err != nil {
 		b.logger.Errorf("Failed to get subject_id: %v", err)
 		return err
@@ -268,9 +273,17 @@ func (b *Bot) handleGradeValueSelected(ctx context.Context, userID int64, callba
 		return err
 	}
 
-	var studentName, subjectName string
-	b.db.Get(&studentName, `SELECT name FROM users WHERE user_id = $1`, studentID)
-	b.db.Get(&subjectName, `SELECT subject_name FROM subjects WHERE subject_id = $1`, subjectID)
+	studentName, err := b.gradeRepo.GetStudentNameByID(studentID)
+	if err != nil {
+		b.logger.Warnf("Failed to get student name: %v", err)
+		studentName = "студенту"
+	}
+
+	subjectName, err := b.subjectRepo.GetSubjectName(subjectID)
+	if err != nil {
+		b.logger.Warnf("Failed to get subject name: %v", err)
+		subjectName = "предмету"
+	}
 
 	successText := fmt.Sprintf(gradeSuccessMsg, gradeValue, studentName, subjectName)
 
