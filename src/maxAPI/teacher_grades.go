@@ -46,6 +46,8 @@ func (b *Bot) handleMarkGradeStart(ctx context.Context, userID int64, callbackID
 		keyboard.AddRow().AddCallback(subject.SubjectName, schemes.DEFAULT, payload)
 	}
 
+	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
+
 	messageBody := &schemes.NewMessageBody{
 		Text:        selectSubjectMsg,
 		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
@@ -121,6 +123,8 @@ func (b *Bot) handleSubjectSelected(ctx context.Context, userID int64, callbackI
 		payload := fmt.Sprintf("grade_grp_%d_%d", subjectID, group.GroupID)
 		keyboard.AddRow().AddCallback(group.GroupName, schemes.DEFAULT, payload)
 	}
+
+	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
 	messageBody := &schemes.NewMessageBody{
 		Text:        selectGroupMsg,
@@ -199,6 +203,7 @@ func (b *Bot) handleStudentSelected(ctx context.Context, _ int64, callbackID, pa
 		keyboard.AddRow().AddCallback(btnText, schemes.DEFAULT, payload)
 	}
 
+	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 	messageBody := &schemes.NewMessageBody{
 		Text:        selectScheduleMsg,
 		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
@@ -227,6 +232,7 @@ func (b *Bot) handleScheduleSelected(ctx context.Context, _ int64, callbackID, p
 		row.AddCallback(fmt.Sprintf("%d", grade), schemes.DEFAULT, payload)
 	}
 
+	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 	messageBody := &schemes.NewMessageBody{
 		Text:        fmt.Sprintf(selectGradeMsg, studentName),
 		Format:      "markdown",

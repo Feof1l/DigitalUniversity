@@ -87,5 +87,6 @@ func GetStudentsPaginationKeyboard(api *maxbot.Api, subjectID, groupID int64, cu
 		}
 	}
 
+	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 	return keyboard
 }

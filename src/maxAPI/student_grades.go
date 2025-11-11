@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/max-messenger/max-bot-api-client-go/schemes"
 
@@ -43,9 +44,13 @@ func (b *Bot) handleShowGradesStart(ctx context.Context, userID int64, callbackI
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
 	for _, subject := range subjects {
+
+		buttonText := fmt.Sprintf("%s\n", subject.SubjectName)
 		payload := fmt.Sprintf("show_grades_subj_%d", subject.SubjectID)
-		keyboard.AddRow().AddCallback(subject.SubjectName, schemes.DEFAULT, payload)
+		keyboard.AddRow().AddCallback(buttonText, schemes.DEFAULT, payload)
 	}
+
+	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
 	messageBody := &schemes.NewMessageBody{
 		Text:        selectSubjectForGradesMsg,
@@ -118,8 +123,12 @@ func (b *Bot) formatGradesList(grades []database.Grade, subjectName string) stri
 	fmt.Fprintf(&sb, gradesListHeader, subjectName)
 
 	for _, grade := range grades {
-		dateStr := grade.GradeDate.Format("02.01.2006 15:04")
-		fmt.Fprintf(&sb, gradeEntryFormat, grade.GradeValue, dateStr)
+		moscowTime := grade.GradeDate.Add(3 * time.Hour)
+
+		dateStr := moscowTime.Format("02.01.2006")
+		timeStr := moscowTime.Format("15:04")
+
+		fmt.Fprintf(&sb, "`%s %s` — **%d**\n", dateStr, timeStr, grade.GradeValue)
 	}
 
 	return sb.String()
