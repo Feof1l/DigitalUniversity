@@ -151,8 +151,12 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 		b.handleShowSchedule(ctx, userID, callbackID)
 	case payload == "markGrade":
 		b.handleMarkGrade(ctx, userID, callbackID)
+	case payload == "markAttendance":
+		b.handleMarkAttendance(ctx, userID, callbackID)
 	case payload == "showScore":
 		b.handleShowScore(ctx, userID, callbackID)
+	case payload == "showAttendance":
+		b.handleShowAttendance(ctx, userID, callbackID)
 	case payload == "backToMenu":
 		b.handleBackToMenu(ctx, userID, callbackID)
 	case strings.HasPrefix(payload, "sch_day_"):
@@ -161,8 +165,24 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 		b.handleGradeCallback(ctx, userID, callbackID, payload)
 	case strings.HasPrefix(payload, "show_grades_"):
 		b.handleShowGradesCallback(ctx, userID, callbackID, payload)
+	case strings.HasPrefix(payload, "attend_"):
+		b.handleAttendanceCallback(ctx, userID, callbackID, payload)
+	case strings.HasPrefix(payload, "show_attend_"):
+		b.handleShowAttendanceCallback(ctx, userID, callbackID, payload)
 	default:
 		b.logger.Warnf("Unknown callback: %s", payload)
+	}
+}
+
+func (b *Bot) handleMarkAttendance(ctx context.Context, userID int64, callbackID string) {
+	if err := b.handleMarkAttendanceStart(ctx, userID, callbackID); err != nil {
+		b.logger.Errorf("Failed to start attendance marking: %v", err)
+	}
+}
+
+func (b *Bot) handleShowAttendance(ctx context.Context, userID int64, callbackID string) {
+	if err := b.handleShowAttendanceStart(ctx, userID, callbackID); err != nil {
+		b.logger.Errorf("Failed to show attendance: %v", err)
 	}
 }
 

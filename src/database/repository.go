@@ -59,6 +59,12 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
+func (r *UserRepository) GetUserMaxIDByID(userID int64) (int64, error) {
+	var userMaxID int64
+	err := r.db.Get(&userMaxID, `SELECT usermax_id FROM users WHERE user_id = $1`, userID)
+	return userMaxID, err
+}
+
 func (r *UserRepository) CreateOrUpdateStudent(tx *sqlx.Tx, userMaxID int64, firstName, lastName string, roleID, groupID int64) error {
 	fullName := firstName + " " + lastName
 
@@ -377,4 +383,62 @@ func (r *GradeRepository) GetSubjectIDByScheduleID(scheduleID int64) (int64, err
 	var subjectID int64
 	err := r.db.Get(&subjectID, `SELECT subject_id FROM schedule WHERE schedule_id = $1`, scheduleID)
 	return subjectID, err
+}
+
+type AttendanceRepository struct {
+	db *sqlx.DB
+}
+
+func NewAttendanceRepository(db *sqlx.DB) *AttendanceRepository {
+	return &AttendanceRepository{db: db}
+}
+
+func (r *AttendanceRepository) MarkAttendance(studentID, scheduleID int64, attended bool) error {
+	var count int
+	err := r.db.Get(&count, `
+        SELECT COUNT(*) FROM attendance
+        WHERE student_id = $1 AND schedule_id = $2`, studentID, scheduleID)
+	if err != nil {
+		return err
+	}
+
+	if count > 0 {
+		_, err = r.db.Exec(`
+            UPDATE attendance
+            SET attended = $1, mark_time = NOW()
+            WHERE student_id = $2 AND schedule_id = $3`,
+			attended, studentID, scheduleID)
+		return err
+	}
+
+	_, err = r.db.Exec(`
+        INSERT INTO attendance (student_id, schedule_id, attended, mark_time)
+        VALUES ($1, $2, $3, NOW())`,
+		studentID, scheduleID, attended)
+	return err
+}
+
+func (r *AttendanceRepository) GetAttendanceByStudentAndSubject(studentID, subjectID int64) ([]Attendance, error) {
+	var attendance []Attendance
+	query := `
+        SELECT a.* FROM attendance a
+        JOIN schedule s ON a.schedule_id = s.schedule_id
+        WHERE a.student_id = $1 AND s.subject_id = $2
+        ORDER BY a.mark_time DESC`
+	err := r.db.Select(&attendance, query, studentID, subjectID)
+	return attendance, err
+}
+
+func (r *AttendanceRepository) GetMarkedStudentIDsBySchedule(scheduleID int64) ([]int64, error) {
+	var studentIDs []int64
+	query := `SELECT student_id FROM attendance WHERE schedule_id = $1`
+	err := r.db.Select(&studentIDs, query, scheduleID)
+	return studentIDs, err
+}
+
+func (r *AttendanceRepository) GetAttendanceRecordsBySchedule(scheduleID int64) ([]Attendance, error) {
+    var records []Attendance
+    query := `SELECT * FROM attendance WHERE schedule_id = $1`
+    err := r.db.Select(&records, query, scheduleID)
+    return records, err
 }

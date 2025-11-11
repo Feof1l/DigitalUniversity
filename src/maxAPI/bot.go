@@ -30,6 +30,7 @@ type Bot struct {
 	lessonTypeRepo *database.LessonTypeRepository
 	scheduleRepo   *database.ScheduleRepository
 	gradeRepo      *database.GradeRepository
+	attendanceRepo *database.AttendanceRepository
 }
 
 func NewBot(cfg *config.MaxConfig, log *logger.Logger, db *sqlx.DB, ctx context.Context) (*Bot, error) {
@@ -61,6 +62,7 @@ func NewBot(cfg *config.MaxConfig, log *logger.Logger, db *sqlx.DB, ctx context.
 		lessonTypeRepo: database.NewLessonTypeRepository(db),
 		scheduleRepo:   database.NewScheduleRepository(db),
 		gradeRepo:      database.NewGradeRepository(db),
+		attendanceRepo: database.NewAttendanceRepository(db),
 	}, nil
 }
 

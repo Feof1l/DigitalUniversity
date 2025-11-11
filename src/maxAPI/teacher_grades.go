@@ -313,7 +313,39 @@ func (b *Bot) handleGradeValueSelected(ctx context.Context, userID int64, callba
 	}
 
 	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
+	go b.sendGradeNotification(context.Background(), studentID, subjectID, subjectName, gradeValue)
 	return err
+}
+
+func (b *Bot) sendGradeNotification(ctx context.Context, studentID, subjectID int64, subjectName string, gradeValue int) {
+	studentMaxID, err := b.userRepo.GetUserMaxIDByID(studentID)
+	if err != nil {
+		b.logger.Warnf("Failed to get student max_id for notification: %v", err)
+		return
+	}
+
+	notificationText := fmt.Sprintf(
+		"📚 **Новая оценка!**\n\n"+
+			"Предмет: **%s**\n"+
+			"Оценка: **%d**",
+		subjectName, gradeValue)
+
+	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
+	payload := fmt.Sprintf("show_grades_subj_%d", subjectID)
+	keyboard.AddRow().AddCallback("📊 Посмотреть все оценки", schemes.POSITIVE, payload)
+
+	msg := maxbot.NewMessage().
+		SetUser(studentMaxID).
+		SetText(notificationText).
+		SetFormat("markdown").
+		AddKeyboard(keyboard)
+
+	_, err = b.MaxAPI.Messages.Send(ctx, msg)
+	if err != nil {
+		b.logger.Warnf("Failed to send grade notification to student %d: %v", studentMaxID, err)
+	} else {
+		b.logger.Infof("Grade notification sent to student %d (max_id: %d)", studentID, studentMaxID)
+	}
 }
 
 func (b *Bot) answerCallbackWithNotification(ctx context.Context, callbackID, notification string) error {

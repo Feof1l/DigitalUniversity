@@ -16,6 +16,10 @@ const (
 	noGradesMsg               = "По предмету **%s** оценок пока нет."
 	gradesListHeader          = "📊 Оценки по предмету **%s**:\n\n"
 	payloadPrefixShowGrades   = "show_grades_"
+	gradeEntryFormat          = "`%s %s` — **%d**\n"
+	statsFooter               = "\n📈 **Статистика:**\n" +
+		"• Всего оценок: **%d**\n" +
+		"• Средний балл: **%.2f**"
 )
 
 func (b *Bot) handleShowGradesStart(ctx context.Context, userID int64, callbackID string) error {
@@ -44,7 +48,6 @@ func (b *Bot) handleShowGradesStart(ctx context.Context, userID int64, callbackI
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
 	for _, subject := range subjects {
-
 		buttonText := fmt.Sprintf("%s\n", subject.SubjectName)
 		payload := fmt.Sprintf("show_grades_subj_%d", subject.SubjectID)
 		keyboard.AddRow().AddCallback(buttonText, schemes.DEFAULT, payload)
@@ -124,18 +127,28 @@ func (b *Bot) handleSubjectSelectedForGrades(ctx context.Context, userID int64, 
 func (b *Bot) formatGradeDateTime(gradeDate time.Time) (dateStr, timeStr string) {
 	moscowTime := gradeDate.Add(3 * time.Hour)
 	dateStr = moscowTime.Format("02.01.2006")
-	timeStr = moscowTime.Format("15:04")
+	timeStr = moscowTime.Format("15:04:05")
 	return
 }
 
 func (b *Bot) formatGradesList(grades []database.Grade, subjectName string) string {
+	if len(grades) == 0 {
+		return fmt.Sprintf(noGradesMsg, subjectName)
+	}
+
 	var sb strings.Builder
 	fmt.Fprintf(&sb, gradesListHeader, subjectName)
 
+	var sum int
+
 	for _, grade := range grades {
 		dateStr, timeStr := b.formatGradeDateTime(grade.GradeDate)
-		fmt.Fprintf(&sb, "`%s %s` — **%d**\n", dateStr, timeStr, grade.GradeValue)
+		fmt.Fprintf(&sb, gradeEntryFormat, dateStr, timeStr, grade.GradeValue)
+		sum += grade.GradeValue
 	}
+
+	average := float64(sum) / float64(len(grades))
+	fmt.Fprintf(&sb, statsFooter, len(grades), average)
 
 	return sb.String()
 }
