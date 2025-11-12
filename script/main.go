@@ -54,7 +54,6 @@ func main() {
 			}
 
 		}
-
 	}()
 	go func() {
 		exit := make(chan os.Signal, 1)

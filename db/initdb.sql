@@ -60,12 +60,6 @@ CREATE TABLE IF NOT EXISTS attendance (
     attended BOOLEAN NOT NULL,
     mark_time TIMESTAMP DEFAULT NOW()
 );
-CREATE TABLE IF NOT EXISTS materials (
-    material_id SERIAL PRIMARY KEY,
-    subject_id INT NOT NULL REFERENCES subjects(subject_id),
-    file_url TEXT NOT NULL,
-    uploaded_at TIMESTAMP DEFAULT NOW()
-);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_teacher_unique ON users(first_name, last_name, role_id)
 WHERE group_id IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_student_unique ON users(first_name, last_name, role_id, group_id)

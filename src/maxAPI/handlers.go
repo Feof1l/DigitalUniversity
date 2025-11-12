@@ -148,17 +148,17 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 	}
 
 	switch {
-	case payload == "showSchedule":
+	case payload == payloadShowSchedule:
 		b.handleShowSchedule(ctx, userID, callbackID)
-	case payload == "markGrade":
+	case payload == payloadMarkGrade:
 		b.handleMarkGrade(ctx, userID, callbackID)
-	case payload == "markAttendance":
+	case payload == payloadMarkAttendance:
 		b.handleMarkAttendance(ctx, userID, callbackID)
-	case payload == "showScore":
+	case payload == payloadShowScore:
 		b.handleShowScore(ctx, userID, callbackID)
-	case payload == "showAttendance":
+	case payload == payloadShowAttendance:
 		b.handleShowAttendance(ctx, userID, callbackID)
-	case payload == "backToMenu":
+	case payload == payloadBackToMenu:
 		b.handleBackToMenu(ctx, userID, callbackID)
 	case strings.HasPrefix(payload, "sch_day_"):
 		b.handleScheduleNavigation(ctx, userID, callbackID, payload)
