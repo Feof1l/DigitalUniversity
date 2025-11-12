@@ -42,6 +42,7 @@ func (b *Bot) handleBotStarted(ctx context.Context, u *schemes.BotStartedUpdate)
 	userRole, err := b.getUserRole(sender.UserId)
 	if err != nil {
 		b.logger.Errorf("Failed to get role from db: %v", err)
+		b.sendMessage(ctx, sender.UserId, unknownMessageDefault)
 		return
 	}
 
