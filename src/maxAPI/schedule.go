@@ -136,7 +136,7 @@ func (b *Bot) sendScheduleForDay(ctx context.Context, maxUserID int64, callbackI
 	messageBody := &schemes.NewMessageBody{
 		Text:        text,
 		Format:      "markdown",
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay).Build())},
+		Attachments: []any{schemes.NewInlineKeyboardAttachmentRequest(GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay).Build())},
 	}
 
 	answer := &schemes.CallbackAnswer{Message: messageBody}

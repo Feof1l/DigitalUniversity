@@ -42,8 +42,7 @@ func (b *Bot) handleMarkAttendanceStart(ctx context.Context, userID int64, callb
 	}
 
 	if len(subjects) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "У вас нет предметов для отметки посещаемости.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, "У вас нет предметов для отметки посещаемости.")
 	}
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
@@ -51,17 +50,9 @@ func (b *Bot) handleMarkAttendanceStart(ctx context.Context, userID int64, callb
 		payload := fmt.Sprintf("attend_subj_%d", subject.SubjectID)
 		keyboard.AddRow().AddCallback(subject.SubjectName, schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        selectSubjectForAttendanceMsg,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, selectSubjectForAttendanceMsg, keyboard)
 }
 
 func (b *Bot) handleAttendanceCallback(ctx context.Context, userID int64, callbackID, payload string) error {
@@ -106,8 +97,7 @@ func (b *Bot) handleAttendanceSubjectSelected(ctx context.Context, userID int64,
 	}
 
 	if len(groups) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "У данного предмета нет групп.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, "У данного предмета нет групп.")
 	}
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
@@ -115,17 +105,9 @@ func (b *Bot) handleAttendanceSubjectSelected(ctx context.Context, userID int64,
 		payload := fmt.Sprintf("attend_grp_%d_%d", subjectID, group.GroupID)
 		keyboard.AddRow().AddCallback(group.GroupName, schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        selectGroupForAttendanceMsg,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, selectGroupForAttendanceMsg, keyboard)
 }
 
 func (b *Bot) handleAttendanceGroupSelected(ctx context.Context, _ int64, callbackID, payload string) error {
@@ -139,8 +121,7 @@ func (b *Bot) handleAttendanceGroupSelected(ctx context.Context, _ int64, callba
 	}
 
 	if len(schedules) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "Нет расписания для данной группы.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, "Нет расписания для данной группы.")
 	}
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
@@ -151,17 +132,9 @@ func (b *Bot) handleAttendanceGroupSelected(ctx context.Context, _ int64, callba
 		payload := fmt.Sprintf("attend_sch_%d_%d_%d", subjectID, groupID, schedule.ScheduleID)
 		keyboard.AddRow().AddCallback(btnText, schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        selectScheduleForAttendanceMsg,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, selectScheduleForAttendanceMsg, keyboard)
 }
 
 func (b *Bot) handleAttendanceScheduleSelected(ctx context.Context, _ int64, callbackID, payload string) error {
@@ -207,19 +180,7 @@ func (b *Bot) showAttendanceStudentsList(ctx context.Context, callbackID string,
 
 	if len(availableStudents) == 0 {
 		keyboard := GetTeacherKeyboard(b.MaxAPI)
-
-		messageBody := &schemes.NewMessageBody{
-			Text:        allMarkedPresentMsg,
-			Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-		}
-
-		answer := &schemes.CallbackAnswer{
-			Message:      messageBody,
-			Notification: "Посещаемость отмечена!",
-		}
-
-		_, err := b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-		return err
+		return b.answerWithKeyboard(ctx, callbackID, allMarkedPresentMsg, keyboard)
 	}
 
 	text := fmt.Sprintf(selectAbsentStudentsMsg, dayName, timeStr)
@@ -247,71 +208,50 @@ func (b *Bot) showAttendanceStudentsList(ctx context.Context, callbackID string,
 
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        text,
-		Format:      "markdown",
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err := b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboardMarkdown(ctx, callbackID, text, keyboard)
 }
 
 func (b *Bot) handleAttendanceMarkAll(ctx context.Context, _ int64, callbackID, payload string) error {
-    var subjectID, groupID, scheduleID int64
-    fmt.Sscanf(payload, "attend_all_%d_%d_%d", &subjectID, &groupID, &scheduleID)
+	var subjectID, groupID, scheduleID int64
+	fmt.Sscanf(payload, "attend_all_%d_%d_%d", &subjectID, &groupID, &scheduleID)
 
-    students, err := b.gradeRepo.GetStudentsByGroup(groupID)
-    if err != nil {
-        b.logger.Errorf("Failed to get students: %v", err)
-        return err
-    }
+	students, err := b.gradeRepo.GetStudentsByGroup(groupID)
+	if err != nil {
+		b.logger.Errorf("Failed to get students: %v", err)
+		return err
+	}
 
-    attendanceRecords, err := b.attendanceRepo.GetAttendanceRecordsBySchedule(scheduleID)
-    if err != nil {
-        b.logger.Errorf("Failed to get attendance records: %v", err)
-        return err
-    }
+	attendanceRecords, err := b.attendanceRepo.GetAttendanceRecordsBySchedule(scheduleID)
+	if err != nil {
+		b.logger.Errorf("Failed to get attendance records: %v", err)
+		return err
+	}
 
-    attendanceMap := make(map[int64]bool)
-    for _, record := range attendanceRecords {
-        attendanceMap[record.StudentID] = record.Attended
-    }
+	attendanceMap := make(map[int64]bool)
+	for _, record := range attendanceRecords {
+		attendanceMap[record.StudentID] = record.Attended
+	}
 
-    subjectName, _ := b.subjectRepo.GetSubjectName(subjectID)
-    now := time.Now()
+	subjectName, _ := b.subjectRepo.GetSubjectName(subjectID)
+	now := time.Now()
 
-    for _, student := range students {
-        attended, exists := attendanceMap[student.UserID]
-        if !exists {
-            err := b.attendanceRepo.MarkAttendance(student.UserID, scheduleID, true)
-            if err != nil {
-                b.logger.Errorf("Failed to mark attendance for student %d: %v", student.UserID, err)
-            } else {
-                go b.notifyStudentAttendance(context.Background(), student.UserID, subjectID, subjectName, true, now)
-            }
-        } else if !attended {
-            continue
-        }
-    }
+	for _, student := range students {
+		attended, exists := attendanceMap[student.UserID]
+		if !exists {
+			err := b.attendanceRepo.MarkAttendance(student.UserID, scheduleID, true)
+			if err != nil {
+				b.logger.Errorf("Failed to mark attendance for student %d: %v", student.UserID, err)
+			} else {
+				go b.notifyStudentAttendance(context.Background(), student.UserID, subjectID, subjectName, true, now)
+			}
+		} else if !attended {
+			continue
+		}
+	}
 
-    keyboard := GetTeacherKeyboard(b.MaxAPI)
-
-    messageBody := &schemes.NewMessageBody{
-        Text:        allMarkedPresentMsg,
-        Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-    }
-
-    answer := &schemes.CallbackAnswer{
-        Message:      messageBody,
-        Notification: "Все отмечены!",
-    }
-
-    _, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-    return err
+	keyboard := GetTeacherKeyboard(b.MaxAPI)
+	return b.answerWithKeyboardAndNotification(ctx, callbackID, allMarkedPresentMsg, keyboard, "Все отмечены!")
 }
-
 
 func (b *Bot) handleAttendanceMarkAbsent(ctx context.Context, _ int64, callbackID, payload string) error {
 	var subjectID, groupID, scheduleID, studentID int64
@@ -379,8 +319,7 @@ func (b *Bot) handleShowAttendanceStart(ctx context.Context, userID int64, callb
 	}
 
 	if len(subjects) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "У вашей группы пока нет предметов.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, "У вашей группы пока нет предметов.")
 	}
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
@@ -389,17 +328,9 @@ func (b *Bot) handleShowAttendanceStart(ctx context.Context, userID int64, callb
 		payload := fmt.Sprintf("show_attend_subj_%d", subject.SubjectID)
 		keyboard.AddRow().AddCallback(buttonText, schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        "Выберите предмет для просмотра посещаемости:",
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, "Выберите предмет для просмотра посещаемости:", keyboard)
 }
 
 func (b *Bot) handleShowAttendanceCallback(ctx context.Context, userID int64, callbackID, payload string) error {
@@ -445,15 +376,7 @@ func (b *Bot) handleShowAttendanceSubjectSelected(ctx context.Context, userID in
 
 	keyboard := GetStudentKeyboard(b.MaxAPI)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        text,
-		Format:      "markdown",
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboardMarkdown(ctx, callbackID, text, keyboard)
 }
 
 func (b *Bot) formatAttendanceList(attendance []database.Attendance, subjectName string) string {
@@ -509,7 +432,7 @@ func (b *Bot) notifyStudentAttendance(ctx context.Context, studentID, subjectID 
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
 	payload := fmt.Sprintf("show_attend_subj_%d", subjectID)
-	keyboard.AddRow().AddCallback("📊 Посмотреть статистику", schemes.POSITIVE, payload)
+	keyboard.AddRow().AddCallback("📊 Посмотреть статистику посещаемости", schemes.POSITIVE, payload)
 
 	studentMaxID, err := b.userRepo.GetUserMaxIDByID(studentID)
 	if err != nil {

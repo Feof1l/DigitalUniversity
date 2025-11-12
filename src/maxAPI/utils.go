@@ -9,9 +9,22 @@ import (
 	"path/filepath"
 	"time"
 
+	maxbot "github.com/max-messenger/max-bot-api-client-go"
 	"github.com/max-messenger/max-bot-api-client-go/schemes"
 
 	"digitalUniversity/services"
+)
+
+const (
+	ErrDownloadStatusFmt = "failed to download file: status %s"
+
+	UnknownUploadTypeWarnFmt = "Unknown upload type: %s"
+	UnknownUploadTypeErrFmt  = "unknown upload type: %s"
+
+	UnknownSubjectText = "Неизвестный предмет"
+	UnknownLessonType  = "Неизвестный тип"
+	UnknownTeacher     = "Неизвестный преподаватель"
+	UnknownGroup       = "Неизвестная группа"
 )
 
 func (b *Bot) downloadFile(ctx context.Context, fileAtt *schemes.FileAttachment) (string, error) {
@@ -35,7 +48,7 @@ func (b *Bot) downloadFile(ctx context.Context, fileAtt *schemes.FileAttachment)
 
 	if resp.StatusCode != http.StatusOK {
 		b.logger.Errorf("Bad HTTP status when downloading file: %s", resp.Status)
-		return "", fmt.Errorf("failed to download file: status %s", resp.Status)
+		return "", fmt.Errorf(ErrDownloadStatusFmt, resp.Status)
 	}
 
 	tmpDir := "./tmp"
@@ -80,8 +93,8 @@ func (b *Bot) validateAndImportFile(filePath, uploadType string) error {
 	case "schedule":
 		return importer.ImportSchedule(filePath)
 	default:
-		b.logger.Warnf("Unknown upload type: %s", uploadType)
-		return fmt.Errorf("unknown upload type: %s", uploadType)
+		b.logger.Warnf(UnknownUploadTypeWarnFmt, uploadType)
+		return fmt.Errorf(UnknownUploadTypeErrFmt, uploadType)
 	}
 }
 
@@ -102,7 +115,7 @@ func (b *Bot) getUserRole(userID int64) (string, error) {
 	return b.userRepo.GetUserRole(userID)
 }
 
-func (b *Bot) extractFileAttachments(attachments []interface{}) []*schemes.FileAttachment {
+func (b *Bot) extractFileAttachments(attachments []any) []*schemes.FileAttachment {
 	fileAttachments := []*schemes.FileAttachment{}
 	for _, att := range attachments {
 		if fileAtt, ok := att.(*schemes.FileAttachment); ok {
@@ -144,7 +157,7 @@ func (b *Bot) getSubjectName(subjectID int64) string {
 	name, err := b.subjectRepo.GetSubjectName(subjectID)
 	if err != nil {
 		b.logger.Errorf("Failed to get subject name for ID %d: %v", subjectID, err)
-		return "Неизвестный предмет"
+		return UnknownSubjectText
 	}
 	return name
 }
@@ -153,7 +166,7 @@ func (b *Bot) getLessonTypeName(lessonTypeID int64) string {
 	name, err := b.lessonTypeRepo.GetLessonTypeName(lessonTypeID)
 	if err != nil {
 		b.logger.Errorf("Failed to get lesson type name for ID %d: %v", lessonTypeID, err)
-		return "Неизвестный тип"
+		return UnknownLessonType
 	}
 	return name
 }
@@ -162,7 +175,7 @@ func (b *Bot) getTeacherName(teacherID int64) string {
 	name, err := b.userRepo.GetTeacherName(teacherID)
 	if err != nil {
 		b.logger.Errorf("Failed to get teacher name for ID %d: %v", teacherID, err)
-		return "Неизвестный преподаватель"
+		return UnknownTeacher
 	}
 	return name
 }
@@ -171,7 +184,41 @@ func (b *Bot) getGroupName(groupID int64) string {
 	name, err := b.groupRepo.GetGroupName(groupID)
 	if err != nil {
 		b.logger.Errorf("Failed to get group name for ID %d: %v", groupID, err)
-		return "Неизвестная группа"
+		return UnknownGroup
 	}
 	return name
+}
+
+func (b *Bot) answerWithKeyboard(ctx context.Context, callbackID string, text string, keyboard *maxbot.Keyboard) error {
+	messageBody := &schemes.NewMessageBody{
+		Text:        text,
+		Attachments: []any{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
+	}
+	answer := &schemes.CallbackAnswer{Message: messageBody}
+	_, err := b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
+	return err
+}
+
+func (b *Bot) answerWithKeyboardAndNotification(ctx context.Context, callbackID string, text string, keyboard *maxbot.Keyboard, notification string) error {
+	messageBody := &schemes.NewMessageBody{
+		Text:        text,
+		Attachments: []any{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
+	}
+	answer := &schemes.CallbackAnswer{
+		Message:      messageBody,
+		Notification: notification,
+	}
+	_, err := b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
+	return err
+}
+
+func (b *Bot) answerWithKeyboardMarkdown(ctx context.Context, callbackID string, text string, keyboard *maxbot.Keyboard) error {
+	messageBody := &schemes.NewMessageBody{
+		Text:        text,
+		Format:      "markdown",
+		Attachments: []any{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
+	}
+	answer := &schemes.CallbackAnswer{Message: messageBody}
+	_, err := b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
+	return err
 }

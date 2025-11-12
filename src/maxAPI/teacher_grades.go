@@ -19,6 +19,14 @@ const (
 	selectGradeMsg    = "Выберите оценку для студента **%s**:"
 	gradeSuccessMsg   = "✅ Оценка **%d** успешно выставлена студенту **%s** по предмету **%s**!"
 
+	noGroupsMsg       = "У данного предмета нет групп."
+	noStudentsMsg     = "В группе нет студентов."
+	noSubjectsMsg     = "У вас нет предметов для выставления оценок."
+	noScheduleMsg     = "Нет расписания для данной группы."
+	gradeSaveErrorMsg = "Ошибка при сохранении оценки."
+
+	notificationTextTemplate = "📚 **Новая оценка!**\n\nПредмет: **%s**\nОценка: **%d**"
+
 	studentsPerPage = 5
 )
 
@@ -36,8 +44,7 @@ func (b *Bot) handleMarkGradeStart(ctx context.Context, userID int64, callbackID
 	}
 
 	if len(subjects) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "У вас нет предметов для выставления оценок.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, noSubjectsMsg)
 	}
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
@@ -45,17 +52,9 @@ func (b *Bot) handleMarkGradeStart(ctx context.Context, userID int64, callbackID
 		payload := fmt.Sprintf("grade_subj_%d", subject.SubjectID)
 		keyboard.AddRow().AddCallback(subject.SubjectName, schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        selectSubjectMsg,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, selectSubjectMsg, keyboard)
 }
 
 func (b *Bot) handleGradeCallback(ctx context.Context, userID int64, callbackID, payload string) error {
@@ -121,8 +120,7 @@ func (b *Bot) handleSubjectSelected(ctx context.Context, userID int64, callbackI
 	}
 
 	if len(groups) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "У данного предмета нет групп.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, noGroupsMsg)
 	}
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
@@ -130,17 +128,9 @@ func (b *Bot) handleSubjectSelected(ctx context.Context, userID int64, callbackI
 		payload := fmt.Sprintf("grade_grp_%d_%d", subjectID, group.GroupID)
 		keyboard.AddRow().AddCallback(group.GroupName, schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        selectGroupMsg,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, selectGroupMsg, keyboard)
 }
 
 func (b *Bot) handleGroupSelected(ctx context.Context, _ int64, callbackID, payload string) error {
@@ -154,8 +144,7 @@ func (b *Bot) handleGroupSelected(ctx context.Context, _ int64, callbackID, payl
 	}
 
 	if len(students) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "В группе нет студентов.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, noStudentsMsg)
 	}
 
 	return b.showStudentsPage(ctx, callbackID, subjectID, groupID, 0, students)
@@ -176,14 +165,7 @@ func (b *Bot) showStudentsPage(ctx context.Context, callbackID string, subjectID
 
 	text := fmt.Sprintf(selectStudentMsg, page+1, totalPages)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        text,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err := b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, text, keyboard)
 }
 
 func (b *Bot) handleStudentSelected(ctx context.Context, _ int64, callbackID, payload string) error {
@@ -197,8 +179,7 @@ func (b *Bot) handleStudentSelected(ctx context.Context, _ int64, callbackID, pa
 	}
 
 	if len(schedules) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "Нет расписания для данной группы.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, noScheduleMsg)
 	}
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
@@ -209,16 +190,9 @@ func (b *Bot) handleStudentSelected(ctx context.Context, _ int64, callbackID, pa
 		payload := fmt.Sprintf("grade_sch_%d_%d", schedule.ScheduleID, studentID)
 		keyboard.AddRow().AddCallback(btnText, schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
-	messageBody := &schemes.NewMessageBody{
-		Text:        selectScheduleMsg,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
 
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, selectScheduleMsg, keyboard)
 }
 
 func (b *Bot) handleScheduleSelected(ctx context.Context, _ int64, callbackID, payload string) error {
@@ -237,17 +211,9 @@ func (b *Bot) handleScheduleSelected(ctx context.Context, _ int64, callbackID, p
 		payload := fmt.Sprintf("grade_val_%d_%d_%d", scheduleID, studentID, grade)
 		row.AddCallback(fmt.Sprintf("%d", grade), schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
-	messageBody := &schemes.NewMessageBody{
-		Text:        fmt.Sprintf(selectGradeMsg, studentName),
-		Format:      "markdown",
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
 
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, fmt.Sprintf(selectGradeMsg, studentName), keyboard)
 }
 
 func (b *Bot) handleGradeValueSelected(ctx context.Context, userID int64, callbackID, payload string) error {
@@ -269,8 +235,7 @@ func (b *Bot) handleGradeValueSelected(ctx context.Context, userID int64, callba
 	err = b.gradeRepo.CreateGrade(studentID, teacherID, subjectID, scheduleID, gradeValue)
 	if err != nil {
 		b.logger.Errorf("Failed to create grade: %v", err)
-		b.answerCallbackWithNotification(ctx, callbackID, "Ошибка при сохранении оценки.")
-		return err
+		return b.answerCallbackWithNotification(ctx, callbackID, gradeSaveErrorMsg)
 	}
 
 	studentName, err := b.gradeRepo.GetStudentNameByID(studentID)
@@ -287,34 +252,11 @@ func (b *Bot) handleGradeValueSelected(ctx context.Context, userID int64, callba
 
 	successText := fmt.Sprintf(gradeSuccessMsg, gradeValue, studentName, subjectName)
 
-	userRole, err := b.getUserRole(userID)
-	if err != nil {
-		b.logger.Errorf("Failed to get user role: %v", err)
-		userRole = "teacher"
-	}
+	keyboard := GetTeacherKeyboard(b.MaxAPI)
 
-	var keyboard *maxbot.Keyboard
-	switch userRole {
-	case "teacher":
-		keyboard = GetTeacherKeyboard(b.MaxAPI)
-	default:
-		keyboard = GetTeacherKeyboard(b.MaxAPI)
-	}
-
-	messageBody := &schemes.NewMessageBody{
-		Text:        successText,
-		Format:      "markdown",
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{
-		Message:      messageBody,
-		Notification: "Оценка выставлена!",
-	}
-
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
 	go b.sendGradeNotification(context.Background(), studentID, subjectID, subjectName, gradeValue)
-	return err
+
+	return b.answerWithKeyboardAndNotification(ctx, callbackID, successText, keyboard, "Оценка выставлена!")
 }
 
 func (b *Bot) sendGradeNotification(ctx context.Context, studentID, subjectID int64, subjectName string, gradeValue int) {
@@ -324,11 +266,7 @@ func (b *Bot) sendGradeNotification(ctx context.Context, studentID, subjectID in
 		return
 	}
 
-	notificationText := fmt.Sprintf(
-		"📚 **Новая оценка!**\n\n"+
-			"Предмет: **%s**\n"+
-			"Оценка: **%d**",
-		subjectName, gradeValue)
+	notificationText := fmt.Sprintf(notificationTextTemplate, subjectName, gradeValue)
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
 	payload := fmt.Sprintf("show_grades_subj_%d", subjectID)

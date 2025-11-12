@@ -14,6 +14,7 @@ import (
 const (
 	selectSubjectForGradesMsg = "Выберите предмет для просмотра оценок:"
 	noGradesMsg               = "По предмету **%s** оценок пока нет."
+	noSubjectsMsgStudent      = "У вашей группы пока нет предметов."
 	gradesListHeader          = "📊 Оценки по предмету **%s**:\n\n"
 	payloadPrefixShowGrades   = "show_grades_"
 	gradeEntryFormat          = "`%s %s` — **%d**\n"
@@ -42,8 +43,7 @@ func (b *Bot) handleShowGradesStart(ctx context.Context, userID int64, callbackI
 	}
 
 	if len(subjects) == 0 {
-		b.answerCallbackWithNotification(ctx, callbackID, "У вашей группы пока нет предметов.")
-		return nil
+		return b.answerCallbackWithNotification(ctx, callbackID, noSubjectsMsgStudent)
 	}
 
 	keyboard := b.MaxAPI.Messages.NewKeyboardBuilder()
@@ -52,17 +52,9 @@ func (b *Bot) handleShowGradesStart(ctx context.Context, userID int64, callbackI
 		payload := fmt.Sprintf("show_grades_subj_%d", subject.SubjectID)
 		keyboard.AddRow().AddCallback(buttonText, schemes.DEFAULT, payload)
 	}
-
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        selectSubjectForGradesMsg,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboard(ctx, callbackID, selectSubjectForGradesMsg, keyboard)
 }
 
 func (b *Bot) handleShowGradesCallback(ctx context.Context, userID int64, callbackID, payload string) error {
@@ -112,16 +104,7 @@ func (b *Bot) handleSubjectSelectedForGrades(ctx context.Context, userID int64, 
 	}
 
 	keyboard := GetStudentKeyboard(b.MaxAPI)
-
-	messageBody := &schemes.NewMessageBody{
-		Text:        text,
-		Format:      "markdown",
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	return err
+	return b.answerWithKeyboardMarkdown(ctx, callbackID, text, keyboard)
 }
 
 func (b *Bot) formatGradeDateTime(gradeDate time.Time) (dateStr, timeStr string) {

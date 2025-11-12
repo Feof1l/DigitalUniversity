@@ -437,8 +437,8 @@ func (r *AttendanceRepository) GetMarkedStudentIDsBySchedule(scheduleID int64) (
 }
 
 func (r *AttendanceRepository) GetAttendanceRecordsBySchedule(scheduleID int64) ([]Attendance, error) {
-    var records []Attendance
-    query := `SELECT * FROM attendance WHERE schedule_id = $1`
-    err := r.db.Select(&records, query, scheduleID)
-    return records, err
+	var records []Attendance
+	query := `SELECT * FROM attendance WHERE schedule_id = $1`
+	err := r.db.Select(&records, query, scheduleID)
+	return records, err
 }

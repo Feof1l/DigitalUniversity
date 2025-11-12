@@ -77,7 +77,7 @@ func (b *Bot) answerCallbackWithKeyboard(ctx context.Context, callbackID string,
 	messageBody := &schemes.NewMessageBody{
 		Text:        text,
 		Format:      "markdown",
-		Attachments: []interface{}{},
+		Attachments: []any{},
 	}
 
 	keyboardBuilt := keyboard.Build()

@@ -246,20 +246,8 @@ func (b *Bot) handleBackToMenu(ctx context.Context, userID int64, callbackID str
 		return fmt.Errorf("unknown role: %s", userRole)
 	}
 
-	messageBody := &schemes.NewMessageBody{
-		Text:        menuText,
-		Attachments: []interface{}{schemes.NewInlineKeyboardAttachmentRequest(keyboard.Build())},
-	}
-
-	answer := &schemes.CallbackAnswer{Message: messageBody}
-	_, err = b.MaxAPI.Messages.AnswerOnCallback(ctx, callbackID, answer)
-	if err != nil && err.Error() != "" {
-		b.logger.Errorf("Failed to answer callback: %v", err)
-		return err
-	}
-
 	b.logger.Infof("User %d returned to main menu (role: %s)", userID, userRole)
-	return nil
+	return b.answerWithKeyboard(ctx, callbackID, menuText, keyboard)
 }
 
 func (b *Bot) getMenuByRole(role string) (*maxbot.Keyboard, string) {
