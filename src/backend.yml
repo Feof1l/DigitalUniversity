@@ -1,6 +1,8 @@
 services:
   backend:
-    build: ../src
+    build:
+      context: ../src
+      dockerfile: Dockerfile
     container_name: backend
     restart: unless-stopped
     depends_on:
