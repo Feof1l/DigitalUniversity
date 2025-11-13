@@ -247,6 +247,27 @@ src/
 │   └── validator.go         # Валидация входных данных
 ```
 
+## Используемые библиотеки
+
+Работа с конфигом и окржунием
+* github.com/caarlos0/env/v11                            v11.3.1
+* github.com/joho/godotenv                               v1.5.1
+
+
+Max Bot API Client library for Golang
+
+* maxbot "github.com/max-messenger/max-bot-api-client-go" v1.0.3
+
+
+Работа с бд
+* github.com/jmoiron/sqlx                                 v1.4.0
+* github.com/lib/pq                                       v1.10.9
+
+
+Кастомный логгер
+* gopkg.in/natefinch/lumberjack.                          v2 v2.2.1
+
+
 ## Дальнейшее развитие
 Проект является расширяемым и масштабируемым, благодаря чему можно без проблем вносить новые функциональности.
 Наиболее перспективными и полезными являются:
