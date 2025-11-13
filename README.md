@@ -37,6 +37,13 @@ graph TD
 
 ## Запуск проекта
 
+Для локального запуска выполните следующие команды:
+```bash
+git clone https://github.com/Feof1l/DigitalUniversity.git
+
+cd /Путь/DigitalUniversity
+```
+
 ### 1. Настройка окружения
 
 Создайте файл `.env` в корне проекта на основе шаблона `.env.example`:
@@ -59,17 +66,7 @@ graph TD
 
 ### 2. Способы запуска
 
-#### Через Makefile (рекомендуется)
-
-```bash
-make up    # Запуск сервисов
-make down  # Остановка
-make reup  # Перезапуск
-make clean # Очистка сборок
-```
-
-#### Через Docker-compose
-
+#### Через Docker-compose (рекомендуется)
 ```bash
 # Запуск
 docker-compose up --build -d
@@ -83,6 +80,19 @@ docker rm $(docker ps -a -q)
 docker rmi $(docker images -q)
 docker system prune -a --volumes -f
 ```
+
+Для запуска потребуется установка `make`
+#### Через Makefile 
+```bash
+make up    # Запуск сервисов
+make down  # Остановка
+make reup  # Перезапуск
+make clean # Очистка сборок
+```
+
+
+
+
 
 ### 3. Инициализация данных
 
