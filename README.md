@@ -38,6 +38,7 @@ graph TD
 ## Запуск проекта
 
 Для локального запуска выполните следующие команды:
+
 ```bash
 git clone https://github.com/Feof1l/DigitalUniversity.git
 
@@ -49,11 +50,11 @@ cd /Путь/DigitalUniversity
 Создайте файл `.env` в корне проекта на основе шаблона `.env.example`. Необходимо указать свой токен, остальные переменные можно оставить без изменения:
 
 ```ini
-`LOG_LEVEL=0` - Уровень логирования
+`LOG_LEVEL=1` - Уровень логирования
 
 `LOG_DIR=../logs` - Директория для файлов логов
 
-`DATABASE_URI=postgres://user:password@postgres_db:5432/dbname?sslmode=disable` - URI для связи с базой данных
+`DATABASE_URI=postgres://user:password@postgres_db:5432/db?sslmode=disable` - URI для связи с базой данных
 
 `MAX_TOKEN`=your_bot_token_here - Токен бота в Max
 
@@ -67,9 +68,10 @@ cd /Путь/DigitalUniversity
 ### 2. Способы запуска
 
 #### Через Docker-compose (рекомендуется)
+
 ```bash
 # Запуск
-docker-compose up --build -d
+docker-compose up --build
 
 # Остановка
 docker-compose down
@@ -82,7 +84,9 @@ docker system prune -a --volumes -f
 ```
 
 Для запуска потребуется установка `make`
-#### Через Makefile 
+
+#### Через Makefile
+
 ```bash
 make up    # Запуск сервисов
 make down  # Остановка
@@ -90,21 +94,17 @@ make reup  # Перезапуск
 make clean # Очистка сборок
 ```
 
-
-
-
-
 ### 3. Инициализация данных
 
 1. Загрузите начальные данные администратора .
-   В конце файла [`db/initdb.sql`](db/initdb.sql) есть пример заполнения. Для заполенения поля `usermax_id` используется `user_id` пользователя на платформе MAX, который можно получить, выполнив:
+   В конце файла [`db/initdb.sql`](db/initdb.sql) есть пример заполнения. Для заполнения поля `usermax_id` используется `user_id` пользователя на платформе MAX, который можно получить, выполнив:
 
 ```
 cd script/
-go run .
+go run main.go
 ```
 
-Открыв тот же чат с ботом, Вам нужно отправить любое сообщение, и Вы получите свой id.
+Открыв тот же чат с ботом, Вам нужно нажать кнопку старт/отправить любое сообщение, и Вы получите свой id.
 
 2. Импортируйте учебные данные через админ-панель:
    - Список студентов ([students_example.csv](docs/Students_example.csv))
