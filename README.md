@@ -46,14 +46,14 @@ cd /Путь/DigitalUniversity
 
 ### 1. Настройка окружения
 
-Создайте файл `.env` в корне проекта на основе шаблона `.env.example`. Необходимо заполнить все переменные окружения, уровень логирования, креды для бд и URI своими значениями:
+Создайте файл `.env` в корне проекта на основе шаблона `.env.example`. Необходимо указать свой токен, остальные переменные можно оставить без изменения:
 
 ```ini
 `LOG_LEVEL=0` - Уровень логирования
 
 `LOG_DIR=../logs` - Директория для файлов логов
 
-`DATABASE_URI=postgres://user:password@localhost:5432/dbname?sslmode=disable` - URI для связи с базой данных
+`DATABASE_URI=postgres://user:password@postgres_db:5432/dbname?sslmode=disable` - URI для связи с базой данных
 
 `MAX_TOKEN`=your_bot_token_here - Токен бота в Max
 
@@ -61,7 +61,7 @@ cd /Путь/DigitalUniversity
 
 `POSTGRES_PASSWORD=password` - Пароль в PostgresDB
 
-`POSTGRES_DB=dbname` - Название бд в PostgresDB
+`POSTGRES_DB=db` - Название бд в PostgresDB
 ```
 
 ### 2. Способы запуска
