@@ -30,16 +30,25 @@ func (b *Bot) handleShowGradesStart(ctx context.Context, userID int64, callbackI
 		return err
 	}
 
-	groupID, err := b.userRepo.GetStudentGroupID(studentID)
-	if err != nil {
-		b.logger.Errorf("Failed to get student group ID: %v", err)
-		return err
-	}
+	var subjects []database.Subject
 
-	subjects, err := b.gradeRepo.GetSubjectsByStudentGroup(groupID)
-	if err != nil {
-		b.logger.Errorf("Failed to get subjects for group %d: %v", groupID, err)
-		return err
+	if b.superUser[userID] {
+		subjects, err = b.gradeRepo.GetSubjects()
+		if err != nil {
+			b.logger.Errorf("Failed to get subjects: %v", err)
+		}
+	} else {
+		groupID, err := b.userRepo.GetStudentGroupID(studentID)
+		if err != nil {
+			b.logger.Errorf("Failed to get student group ID: %v", err)
+			return err
+		}
+
+		subjects, err = b.gradeRepo.GetSubjectsByStudentGroup(groupID)
+		if err != nil {
+			b.logger.Errorf("Failed to get subjects for group %d: %v", groupID, err)
+			return err
+		}
 	}
 
 	if len(subjects) == 0 {
@@ -90,10 +99,20 @@ func (b *Bot) handleSubjectSelectedForGrades(ctx context.Context, userID int64, 
 		subjectName = "Предмет"
 	}
 
-	grades, err := b.gradeRepo.GetGradesByStudentAndSubject(studentID, subjectID)
-	if err != nil {
-		b.logger.Errorf("Failed to get grades: %v", err)
-		return err
+	var grades []database.Grade
+
+	if b.superUser[userID] {
+		grades, err = b.gradeRepo.GetGradesBySubject(subjectID)
+		if err != nil {
+			b.logger.Errorf("Failed to get grades: %v", err)
+			return err
+		}
+	} else {
+		grades, err = b.gradeRepo.GetGradesByStudentAndSubject(studentID, subjectID)
+		if err != nil {
+			b.logger.Errorf("Failed to get grades: %v", err)
+			return err
+		}
 	}
 
 	var text string
@@ -103,7 +122,7 @@ func (b *Bot) handleSubjectSelectedForGrades(ctx context.Context, userID int64, 
 		text = b.formatGradesList(grades, subjectName)
 	}
 
-	keyboard := GetStudentKeyboard(b.MaxAPI)
+	keyboard := GetStudentKeyboard(b.MaxAPI, b.superUser[userID])
 	return b.answerWithKeyboardMarkdown(ctx, callbackID, text, keyboard)
 }
 

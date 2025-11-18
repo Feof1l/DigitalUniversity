@@ -84,7 +84,8 @@ CREATE INDEX IF NOT EXISTS idx_attendance_student_schedule ON attendance(student
 CREATE INDEX IF NOT EXISTS idx_subjects_teacher_id ON subjects(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_subjects_name ON subjects(subject_name);
 INSERT INTO roles (role_name)
-VALUES ('admin'),
+VALUES ('super_user'),
+    ('admin'),
     ('teacher'),
     ('student') ON CONFLICT (role_name) DO NOTHING;
 INSERT INTO users (
@@ -97,13 +98,13 @@ INSERT INTO users (
     )
 VALUES (
         'Aslan Alibekov',
-        83593004,
+        94246618,
         'Aslan',
         'Alibekov',
         (
             SELECT role_id
             FROM roles
-            WHERE role_name = 'admin'
+            WHERE role_name = 'super_user'
         ),
         NULL
     ) ON CONFLICT (usermax_id) DO

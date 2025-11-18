@@ -86,6 +86,10 @@ func (b *Bot) calculateNavigationDays(weekday int16) (prev, next int16) {
 }
 
 func (b *Bot) getScheduleEntriesForUser(maxUserID int64, weekday int16) ([]database.Schedule, error) {
+	if b.superUser[maxUserID] {
+		return b.scheduleRepo.GetScheduleForDate(weekday)
+	}
+
 	userRole, err := b.getUserRole(maxUserID)
 	if err != nil {
 		b.logger.Errorf("Failed to get user role: %v", err)
@@ -136,7 +140,7 @@ func (b *Bot) sendScheduleForDay(ctx context.Context, maxUserID int64, callbackI
 	messageBody := &schemes.NewMessageBody{
 		Text:        text,
 		Format:      "markdown",
-		Attachments: []any{schemes.NewInlineKeyboardAttachmentRequest(GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay).Build())},
+		Attachments: []any{schemes.NewInlineKeyboardAttachmentRequest(GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay, b.superUser[maxUserID]).Build())},
 	}
 
 	answer := &schemes.CallbackAnswer{Message: messageBody}
@@ -160,7 +164,7 @@ func (b *Bot) answerScheduleCallback(ctx context.Context, maxUserID int64, callb
 
 	prevDay, nextDay := b.calculateNavigationDays(weekday)
 
-	if err := b.answerCallbackWithKeyboard(ctx, callbackID, GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay), text); err != nil {
+	if err := b.answerCallbackWithKeyboard(ctx, callbackID, GetScheduleKeyboard(b.MaxAPI, prevDay, nextDay, b.superUser[maxUserID]), text); err != nil {
 		b.logger.Errorf("Failed to answer callback: %v", err)
 		return err
 	}

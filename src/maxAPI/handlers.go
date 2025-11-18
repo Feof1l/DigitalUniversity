@@ -2,6 +2,7 @@ package maxAPI
 
 import (
 	"context"
+	"digitalUniversity/database"
 	"fmt"
 	"strings"
 	"time"
@@ -34,6 +35,7 @@ const (
 	scheduleSuccessMessage  = "✅ Расписание успешно загружено!"
 	defaultSuccessMessage   = "✅ Данные успешно загружены!"
 	nextActionMessage       = "Выберите следующее действие:"
+	chooseRoleMessage       = "Добро пожаловать! Выберите свою роль:"
 )
 
 func (b *Bot) handleBotStarted(ctx context.Context, u *schemes.BotStartedUpdate) {
@@ -43,6 +45,12 @@ func (b *Bot) handleBotStarted(ctx context.Context, u *schemes.BotStartedUpdate)
 	if err != nil {
 		b.logger.Errorf("Failed to get role from db: %v", err)
 		b.sendMessage(ctx, sender.UserId, unknownMessageDefault)
+		return
+	}
+
+	if userRole == "super_user" {
+		b.superUser[sender.UserId] = true
+		b.sendKeyboard(ctx, GetSuperUserKeyboard(b.MaxAPI), sender.UserId, chooseRoleMessage)
 		return
 	}
 
@@ -75,7 +83,7 @@ func (b *Bot) handleMessageCreated(ctx context.Context, u *schemes.MessageCreate
 
 	uploadType := b.pendingUploads[userID]
 	if uploadType == "" {
-		b.logger.Warnf("No pending upload for user %d", userID)
+		b.logger.Warnf("No pending upload for user %+v %d", b.pendingUploads, userID)
 		b.handleUnexpectedMessage(ctx, userID)
 		return
 	}
@@ -160,6 +168,35 @@ func (b *Bot) handleCallback(ctx context.Context, u *schemes.MessageCallbackUpda
 		b.handleShowAttendance(ctx, userID, callbackID)
 	case payload == payloadBackToMenu:
 		b.handleBackToMenu(ctx, userID, callbackID)
+	case payload == payloadAdminRole:
+		user := database.User{
+			UserMaxID: sender.UserId,
+			Name:      sender.Name,
+			FirstName: sender.FirstName,
+			LastName:  sender.LastName,
+			RoleID:    2,
+		}
+		b.setAndActivateRole(ctx, user, callbackID, payload)
+	case payload == payloadTeacherRole:
+		user := database.User{
+			UserMaxID: sender.UserId,
+			Name:      sender.Name,
+			FirstName: sender.FirstName,
+			LastName:  sender.LastName,
+			RoleID:    3,
+		}
+		b.setAndActivateRole(ctx, user, callbackID, payload)
+	case payload == payloadStudentRole:
+		user := database.User{
+			UserMaxID: sender.UserId,
+			Name:      sender.Name,
+			FirstName: sender.FirstName,
+			LastName:  sender.LastName,
+			RoleID:    4,
+		}
+		b.setAndActivateRole(ctx, user, callbackID, payload)
+	case payload == payloadBackToRoleSelection:
+		b.answerCallbackWithKeyboard(ctx, callbackID, GetSuperUserKeyboard(b.MaxAPI), chooseRoleMessage)
 	case strings.HasPrefix(payload, "sch_day_"):
 		b.handleScheduleNavigation(ctx, userID, callbackID, payload)
 	case strings.HasPrefix(payload, "grade_"):
@@ -240,7 +277,7 @@ func (b *Bot) handleBackToMenu(ctx context.Context, userID int64, callbackID str
 		return err
 	}
 
-	keyboard, menuText := b.getMenuByRole(userRole)
+	keyboard, menuText := b.getMenuByRole(userRole, userID)
 	if keyboard == nil {
 		b.logger.Warnf("Unknown role: %s", userRole)
 		return fmt.Errorf("unknown role: %s", userRole)
@@ -250,14 +287,14 @@ func (b *Bot) handleBackToMenu(ctx context.Context, userID int64, callbackID str
 	return b.answerWithKeyboard(ctx, callbackID, menuText, keyboard)
 }
 
-func (b *Bot) getMenuByRole(role string) (*maxbot.Keyboard, string) {
+func (b *Bot) getMenuByRole(role string, userID int64) (*maxbot.Keyboard, string) {
 	switch role {
 	case "admin":
-		return GetAdminKeyboard(b.MaxAPI), mainMenuAdminMsg
+		return GetAdminKeyboard(b.MaxAPI, b.superUser[userID]), mainMenuAdminMsg
 	case "teacher":
-		return GetTeacherKeyboard(b.MaxAPI), mainMenuTeacherMsg
+		return GetTeacherKeyboard(b.MaxAPI, b.superUser[userID]), mainMenuTeacherMsg
 	case "student":
-		return GetStudentKeyboard(b.MaxAPI), mainMenuStudentMsg
+		return GetStudentKeyboard(b.MaxAPI, b.superUser[userID]), mainMenuStudentMsg
 	default:
 		return nil, ""
 	}
@@ -271,7 +308,7 @@ func (b *Bot) handleUnexpectedMessage(ctx context.Context, userID int64) {
 		return
 	}
 
-	keyboard, _ := b.getMenuByRole(userRole)
+	keyboard, _ := b.getMenuByRole(userRole, userID)
 	if keyboard != nil {
 		b.sendKeyboard(ctx, keyboard, userID, unknownMessage)
 	} else {
@@ -279,4 +316,43 @@ func (b *Bot) handleUnexpectedMessage(ctx context.Context, userID int64) {
 	}
 
 	delete(b.pendingUploads, userID)
+}
+
+func (b *Bot) setAndActivateRole(ctx context.Context, user database.User, callbackID, payload string) {
+	tx, err := b.db.Beginx()
+	if err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	if err := b.userRepo.UpdateUserRole(tx, user.UserMaxID, user.RoleID); err != nil {
+		b.logger.Errorf("Failed to set role for user: %v", err)
+		b.sendMessage(ctx, user.UserMaxID, "Не удалось сохранить роль")
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		b.logger.Errorf("Failed to update role for user: %v", err)
+	}
+
+	//b.sendWelcomeWithKeyboard(ctx, user.UserMaxID, payload)
+
+	var keyboard *maxbot.Keyboard
+	var msg string
+
+	switch payload {
+	case "admin":
+		keyboard = GetAdminKeyboard(b.MaxAPI, b.superUser[user.UserID])
+		msg = welcomeAdminMsg
+	case "teacher":
+		keyboard = GetTeacherKeyboard(b.MaxAPI, b.superUser[user.UserID])
+		msg = welcomeTeacherMsg
+	case "student":
+		keyboard = GetStudentKeyboard(b.MaxAPI, b.superUser[user.UserID])
+		msg = welcomeStudentMsg
+	}
+
+	// msg := fmt.Sprintf("✅ Роль «%s» установлена!", role)
+	b.answerCallbackWithKeyboard(ctx, callbackID, keyboard, msg)
 }

@@ -35,10 +35,20 @@ func (b *Bot) handleMarkAttendanceStart(ctx context.Context, userID int64, callb
 		return err
 	}
 
-	subjects, err := b.gradeRepo.GetSubjectsByTeacher(teacherID)
-	if err != nil {
-		b.logger.Errorf("Failed to get subjects for teacher %d: %v", teacherID, err)
-		return err
+	var subjects []database.Subject
+
+	if b.superUser[userID] {
+		subjects, err = b.gradeRepo.GetSubjects()
+		if err != nil {
+			b.logger.Errorf("Failed to get subjects: %v", err)
+			return err
+		}
+	} else {
+		subjects, err = b.gradeRepo.GetSubjectsByTeacher(teacherID)
+		if err != nil {
+			b.logger.Errorf("Failed to get subjects for teacher %d: %v", teacherID, err)
+			return err
+		}
 	}
 
 	if len(subjects) == 0 {
@@ -90,7 +100,15 @@ func (b *Bot) handleAttendanceSubjectSelected(ctx context.Context, userID int64,
 		return err
 	}
 
-	groups, err := b.gradeRepo.GetGroupsBySubjectAndTeacher(subjectID, teacherID)
+	var groups []database.Group
+
+	if b.superUser[userID] {
+		groups, err = b.gradeRepo.GetGroupsBySubject(subjectID)
+	} else {
+		groups, err = b.gradeRepo.GetGroupsBySubjectAndTeacher(subjectID, teacherID)
+
+	}
+
 	if err != nil {
 		b.logger.Errorf("Failed to get groups: %v", err)
 		return err
@@ -137,7 +155,7 @@ func (b *Bot) handleAttendanceGroupSelected(ctx context.Context, _ int64, callba
 	return b.answerWithKeyboard(ctx, callbackID, selectScheduleForAttendanceMsg, keyboard)
 }
 
-func (b *Bot) handleAttendanceScheduleSelected(ctx context.Context, _ int64, callbackID, payload string) error {
+func (b *Bot) handleAttendanceScheduleSelected(ctx context.Context, userID int64, callbackID, payload string) error {
 	var subjectID, groupID, scheduleID int64
 	fmt.Sscanf(payload, "attend_sch_%d_%d_%d", &subjectID, &groupID, &scheduleID)
 
@@ -160,10 +178,10 @@ func (b *Bot) handleAttendanceScheduleSelected(ctx context.Context, _ int64, cal
 	dayName := b.getWeekdayName(weekday)
 	timeStr := startTime.Format("15:04")
 
-	return b.showAttendanceStudentsList(ctx, callbackID, subjectID, groupID, scheduleID, dayName, timeStr, students, []int64{})
+	return b.showAttendanceStudentsList(ctx, callbackID, subjectID, groupID, scheduleID, dayName, timeStr, students, []int64{}, userID)
 }
 
-func (b *Bot) showAttendanceStudentsList(ctx context.Context, callbackID string, subjectID, groupID, scheduleID int64, dayName, timeStr string, allStudents []database.User, markedAbsentIDs []int64) error {
+func (b *Bot) showAttendanceStudentsList(ctx context.Context, callbackID string, subjectID, groupID, scheduleID int64, dayName, timeStr string, allStudents []database.User, markedAbsentIDs []int64, userID int64) error {
 	var availableStudents []database.User
 	for _, student := range allStudents {
 		isMarked := false
@@ -179,7 +197,7 @@ func (b *Bot) showAttendanceStudentsList(ctx context.Context, callbackID string,
 	}
 
 	if len(availableStudents) == 0 {
-		keyboard := GetTeacherKeyboard(b.MaxAPI)
+		keyboard := GetTeacherKeyboard(b.MaxAPI, b.superUser[userID])
 		return b.answerWithKeyboard(ctx, callbackID, allMarkedPresentMsg, keyboard)
 	}
 
@@ -211,7 +229,7 @@ func (b *Bot) showAttendanceStudentsList(ctx context.Context, callbackID string,
 	return b.answerWithKeyboardMarkdown(ctx, callbackID, text, keyboard)
 }
 
-func (b *Bot) handleAttendanceMarkAll(ctx context.Context, _ int64, callbackID, payload string) error {
+func (b *Bot) handleAttendanceMarkAll(ctx context.Context, userID int64, callbackID, payload string) error {
 	var subjectID, groupID, scheduleID int64
 	fmt.Sscanf(payload, "attend_all_%d_%d_%d", &subjectID, &groupID, &scheduleID)
 
@@ -249,11 +267,11 @@ func (b *Bot) handleAttendanceMarkAll(ctx context.Context, _ int64, callbackID, 
 		}
 	}
 
-	keyboard := GetTeacherKeyboard(b.MaxAPI)
+	keyboard := GetTeacherKeyboard(b.MaxAPI, b.superUser[userID])
 	return b.answerWithKeyboardAndNotification(ctx, callbackID, allMarkedPresentMsg, keyboard, "Все отмечены!")
 }
 
-func (b *Bot) handleAttendanceMarkAbsent(ctx context.Context, _ int64, callbackID, payload string) error {
+func (b *Bot) handleAttendanceMarkAbsent(ctx context.Context, userID int64, callbackID, payload string) error {
 	var subjectID, groupID, scheduleID, studentID int64
 	var markedIDsStr string
 
@@ -296,7 +314,7 @@ func (b *Bot) handleAttendanceMarkAbsent(ctx context.Context, _ int64, callbackI
 	dayName := b.getWeekdayName(weekday)
 	timeStr := startTime.Format("15:04")
 
-	return b.showAttendanceStudentsList(ctx, callbackID, subjectID, groupID, scheduleID, dayName, timeStr, students, markedAbsentIDs)
+	return b.showAttendanceStudentsList(ctx, callbackID, subjectID, groupID, scheduleID, dayName, timeStr, students, markedAbsentIDs, userID)
 }
 
 func (b *Bot) handleShowAttendanceStart(ctx context.Context, userID int64, callbackID string) error {
@@ -306,16 +324,26 @@ func (b *Bot) handleShowAttendanceStart(ctx context.Context, userID int64, callb
 		return err
 	}
 
-	groupID, err := b.userRepo.GetStudentGroupID(studentID)
-	if err != nil {
-		b.logger.Errorf("Failed to get student group ID: %v", err)
-		return err
-	}
+	var subjects []database.Subject
 
-	subjects, err := b.gradeRepo.GetSubjectsByStudentGroup(groupID)
-	if err != nil {
-		b.logger.Errorf("Failed to get subjects for group %d: %v", groupID, err)
-		return err
+	if b.superUser[userID] {
+		subjects, err = b.gradeRepo.GetSubjects()
+		if err != nil {
+			b.logger.Errorf("Failed to get subjects: %v", err)
+			return err
+		}
+	} else {
+		groupID, err := b.userRepo.GetStudentGroupID(studentID)
+		if err != nil {
+			b.logger.Errorf("Failed to get student group ID: %v", err)
+			return err
+		}
+
+		subjects, err = b.gradeRepo.GetSubjectsByStudentGroup(groupID)
+		if err != nil {
+			b.logger.Errorf("Failed to get subjects for group %d: %v", groupID, err)
+			return err
+		}
 	}
 
 	if len(subjects) == 0 {
@@ -366,7 +394,14 @@ func (b *Bot) handleShowAttendanceSubjectSelected(ctx context.Context, userID in
 		subjectName = "Предмет"
 	}
 
-	attendance, err := b.attendanceRepo.GetAttendanceByStudentAndSubject(studentID, subjectID)
+	var attendance []database.Attendance
+
+	if b.superUser[userID] {
+		attendance, err = b.attendanceRepo.GetAttendanceBySubject(subjectID)
+	} else {
+		attendance, err = b.attendanceRepo.GetAttendanceByStudentAndSubject(studentID, subjectID)
+	}
+
 	if err != nil {
 		b.logger.Errorf("Failed to get attendance: %v", err)
 		return err
@@ -374,7 +409,7 @@ func (b *Bot) handleShowAttendanceSubjectSelected(ctx context.Context, userID in
 
 	text := b.formatAttendanceList(attendance, subjectName)
 
-	keyboard := GetStudentKeyboard(b.MaxAPI)
+	keyboard := GetStudentKeyboard(b.MaxAPI, b.superUser[userID])
 
 	return b.answerWithKeyboardMarkdown(ctx, callbackID, text, keyboard)
 }

@@ -95,6 +95,25 @@ func (r *UserRepository) CreateOrUpdateStudent(tx *sqlx.Tx, userMaxID int64, fir
 	return err
 }
 
+func (r *UserRepository) UpdateUserRole(tx *sqlx.Tx, userMaxID int64, roleID int64) error {
+
+	_, err := tx.Exec(`
+		UPDATE users
+		SET role_id = $1
+		WHERE usermax_id = $2`,
+		roleID, userMaxID)
+	if err != nil {
+		return err
+	}
+
+	// rowsAffected, _ := result.RowsAffected()
+	// if rowsAffected > 0 {
+	// 	return nil
+	// }
+
+	return err
+}
+
 func (r *UserRepository) CreateOrUpdateTeacher(tx *sqlx.Tx, userMaxID int64, firstName, lastName string, roleID int64) error {
 	fullName := firstName + " " + lastName
 
@@ -306,6 +325,13 @@ func (r *GradeRepository) GetSubjectsByTeacher(teacherID int64) ([]Subject, erro
 	return subjects, err
 }
 
+func (r *GradeRepository) GetSubjects() ([]Subject, error) {
+	var subjects []Subject
+	query := `SELECT * FROM subjects ORDER BY subject_name`
+	err := r.db.Select(&subjects, query)
+	return subjects, err
+}
+
 func (r *GradeRepository) GetSubjectsByStudentGroup(groupID int64) ([]Subject, error) {
 	var subjects []Subject
 	query := `
@@ -325,6 +351,13 @@ func (r *GradeRepository) GetGradesByStudentAndSubject(studentID, subjectID int6
 	return grades, err
 }
 
+func (r *GradeRepository) GetGradesBySubject(subjectID int64) ([]Grade, error) {
+	var grades []Grade
+	query := `SELECT * FROM grades WHERE subject_id = $1 ORDER BY grade_date DESC`
+	err := r.db.Select(&grades, query, subjectID)
+	return grades, err
+}
+
 func (r *GradeRepository) GetGroupsBySubjectAndTeacher(subjectID, teacherID int64) ([]Group, error) {
 	var groups []Group
 	query := `
@@ -335,6 +368,19 @@ func (r *GradeRepository) GetGroupsBySubjectAndTeacher(subjectID, teacherID int6
         WHERE s.subject_id = $1 AND s.teacher_id = $2
         ORDER BY g.group_name`
 	err := r.db.Select(&groups, query, subjectID, teacherID)
+	return groups, err
+}
+
+func (r *GradeRepository) GetGroupsBySubject(subjectID int64) ([]Group, error) {
+	var groups []Group
+	query := `
+        SELECT DISTINCT g.group_id, g.group_name
+        FROM groups g
+        JOIN groups_subjects gs ON g.group_id = gs.group_id
+        JOIN subjects s ON gs.subject_id = s.subject_id
+        WHERE s.subject_id = $1 
+        ORDER BY g.group_name`
+	err := r.db.Select(&groups, query, subjectID)
 	return groups, err
 }
 
@@ -426,6 +472,17 @@ func (r *AttendanceRepository) GetAttendanceByStudentAndSubject(studentID, subje
         WHERE a.student_id = $1 AND s.subject_id = $2
         ORDER BY a.mark_time DESC`
 	err := r.db.Select(&attendance, query, studentID, subjectID)
+	return attendance, err
+}
+
+func (r *AttendanceRepository) GetAttendanceBySubject(subjectID int64) ([]Attendance, error) {
+	var attendance []Attendance
+	query := `
+        SELECT a.* FROM attendance a
+        JOIN schedule s ON a.schedule_id = s.schedule_id
+        WHERE s.subject_id = $1
+        ORDER BY a.mark_time DESC`
+	err := r.db.Select(&attendance, query, subjectID)
 	return attendance, err
 }
 
