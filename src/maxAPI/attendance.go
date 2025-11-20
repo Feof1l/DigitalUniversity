@@ -170,10 +170,11 @@ func (b *Bot) handleAttendanceScheduleSelected(ctx context.Context, userID int64
 		return nil
 	}
 
-	var weekday int16
-	var startTime time.Time
-	b.db.Get(&weekday, `SELECT weekday FROM schedule WHERE schedule_id = $1`, scheduleID)
-	b.db.Get(&startTime, `SELECT start_time FROM schedule WHERE schedule_id = $1`, scheduleID)
+	weekday, startTime, err := b.getScheduleTiming(scheduleID)
+	if err != nil {
+		b.logger.Errorf("Failed to get schedule timing: %v", err)
+		return err
+	}
 
 	dayName := b.getWeekdayName(weekday)
 	timeStr := startTime.Format("15:04")
@@ -306,15 +307,29 @@ func (b *Bot) handleAttendanceMarkAbsent(ctx context.Context, userID int64, call
 		return err
 	}
 
-	var weekday int16
-	var startTime time.Time
-	b.db.Get(&weekday, `SELECT weekday FROM schedule WHERE schedule_id = $1`, scheduleID)
-	b.db.Get(&startTime, `SELECT start_time FROM schedule WHERE schedule_id = $1`, scheduleID)
+	weekday, startTime, err := b.getScheduleTiming(scheduleID)
+	if err != nil {
+		b.logger.Errorf("Failed to get schedule timing: %v", err)
+		return err
+	}
 
 	dayName := b.getWeekdayName(weekday)
 	timeStr := startTime.Format("15:04")
 
 	return b.showAttendanceStudentsList(ctx, callbackID, subjectID, groupID, scheduleID, dayName, timeStr, students, markedAbsentIDs, userID)
+}
+
+func (b *Bot) getScheduleTiming(scheduleID int64) (int16, time.Time, error) {
+	var result struct {
+		Weekday   int16     `db:"weekday"`
+		StartTime time.Time `db:"start_time"`
+	}
+
+	if err := b.db.Get(&result, `SELECT weekday, start_time FROM schedule WHERE schedule_id = $1`, scheduleID); err != nil {
+		return 0, time.Time{}, err
+	}
+
+	return result.Weekday, result.StartTime, nil
 }
 
 func (b *Bot) handleShowAttendanceStart(ctx context.Context, userID int64, callbackID string) error {

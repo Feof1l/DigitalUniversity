@@ -378,7 +378,7 @@ func (r *GradeRepository) GetGroupsBySubject(subjectID int64) ([]Group, error) {
         FROM groups g
         JOIN groups_subjects gs ON g.group_id = gs.group_id
         JOIN subjects s ON gs.subject_id = s.subject_id
-        WHERE s.subject_id = $1 
+        WHERE s.subject_id = $1
         ORDER BY g.group_name`
 	err := r.db.Select(&groups, query, subjectID)
 	return groups, err

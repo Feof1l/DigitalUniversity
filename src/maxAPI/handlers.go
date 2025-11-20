@@ -2,13 +2,14 @@ package maxAPI
 
 import (
 	"context"
-	"digitalUniversity/database"
 	"fmt"
 	"strings"
 	"time"
 
 	maxbot "github.com/max-messenger/max-bot-api-client-go"
 	"github.com/max-messenger/max-bot-api-client-go/schemes"
+
+	"digitalUniversity/database"
 )
 
 const (
