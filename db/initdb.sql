@@ -88,28 +88,4 @@ VALUES ('super_user'),
     ('admin'),
     ('teacher'),
     ('student') ON CONFLICT (role_name) DO NOTHING;
-INSERT INTO users (
-        name,
-        usermax_id,
-        first_name,
-        last_name,
-        role_id,
-        group_id
-    )
-VALUES (
-        'Aslan Alibekov',
-        94246618,
-        'Aslan',
-        'Alibekov',
-        (
-            SELECT role_id
-            FROM roles
-            WHERE role_name = 'super_user'
-        ),
-        NULL
-    ) ON CONFLICT (usermax_id) DO
-UPDATE
-SET first_name = EXCLUDED.first_name,
-    last_name = EXCLUDED.last_name,
-    name = EXCLUDED.name,
-    role_id = EXCLUDED.role_id;
+

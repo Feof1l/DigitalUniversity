@@ -95,6 +95,29 @@ func (r *UserRepository) CreateOrUpdateStudent(tx *sqlx.Tx, userMaxID int64, fir
 	return err
 }
 
+func (r *UserRepository) CreateUser(tx *sqlx.Tx, userMaxID int64, firstName, lastName string, roleID int64) error {
+	fullName := firstName + " " + lastName
+
+	result, err := tx.Exec(`
+		INSERT INTO users (name, usermax_id, first_name, last_name, role_id)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (usermax_id) DO UPDATE
+		SET first_name = EXCLUDED.first_name,
+		    last_name = EXCLUDED.last_name,
+		    name = EXCLUDED.name`,
+		fullName, userMaxID, firstName, lastName, roleID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected > 0 {
+		return nil
+	}
+
+	return err
+}
+
 func (r *UserRepository) UpdateUserRole(tx *sqlx.Tx, userMaxID int64, roleID int64) error {
 
 	_, err := tx.Exec(`

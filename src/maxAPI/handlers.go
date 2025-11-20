@@ -42,20 +42,27 @@ const (
 func (b *Bot) handleBotStarted(ctx context.Context, u *schemes.BotStartedUpdate) {
 	sender := u.User
 
-	userRole, err := b.getUserRole(sender.UserId)
+	_, err := b.getUserRole(sender.UserId)
 	if err != nil {
 		b.logger.Errorf("Failed to get role from db: %v", err)
-		b.sendMessage(ctx, sender.UserId, unknownMessageDefault)
-		return
+		tx, err := b.db.Beginx()
+		if err != nil {
+			b.logger.Errorf("Failed to create tx for db: %v", err)
+		}
+		defer tx.Rollback()
+
+		err = b.userRepo.CreateUser(tx, sender.UserId, sender.FirstName, sender.LastName, 1)
+		if err != nil {
+			b.logger.Errorf("Failed to create user: %v", err)
+		}
+
+		tx.Commit()
 	}
 
-	if userRole == "super_user" {
-		b.superUser[sender.UserId] = true
-		b.sendKeyboard(ctx, GetSuperUserKeyboard(b.MaxAPI), sender.UserId, chooseRoleMessage)
-		return
-	}
+	b.superUser[sender.UserId] = true
+	b.sendKeyboard(ctx, GetSuperUserKeyboard(b.MaxAPI), sender.UserId, chooseRoleMessage)
 
-	b.sendWelcomeWithKeyboard(ctx, sender.UserId, userRole)
+	//b.sendWelcomeWithKeyboard(ctx, sender.UserId, userRole)
 }
 
 func (b *Bot) handleMessageCreated(ctx context.Context, u *schemes.MessageCreatedUpdate) {
