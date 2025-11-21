@@ -35,7 +35,7 @@ func (b *Bot) sendErrorAndResetUpload(ctx context.Context, userID int64, errorMs
 func (b *Bot) sendSuccessMessage(ctx context.Context, userID int64, uploadType string) {
 	message := b.getSuccessMessage(uploadType)
 	b.sendMessage(ctx, userID, message)
-	b.sendKeyboard(ctx, GetAdminKeyboard(b.MaxAPI), userID, nextActionMessage)
+	b.sendKeyboard(ctx, GetAdminKeyboard(b.MaxAPI, b.superUser[userID]), userID, nextActionMessage)
 }
 
 func (b *Bot) getSuccessMessage(uploadType string) string {
@@ -103,13 +103,13 @@ func (b *Bot) sendWelcomeWithKeyboard(ctx context.Context, userID int64, role st
 
 	switch role {
 	case "admin":
-		keyboard = GetAdminKeyboard(b.MaxAPI)
+		keyboard = GetAdminKeyboard(b.MaxAPI, b.superUser[userID])
 		msg = welcomeAdminMsg
 	case "teacher":
-		keyboard = GetTeacherKeyboard(b.MaxAPI)
+		keyboard = GetTeacherKeyboard(b.MaxAPI, b.superUser[userID])
 		msg = welcomeTeacherMsg
 	case "student":
-		keyboard = GetStudentKeyboard(b.MaxAPI)
+		keyboard = GetStudentKeyboard(b.MaxAPI, b.superUser[userID])
 		msg = welcomeStudentMsg
 	default:
 		b.logger.Warnf("Unknown role: %q", role)
@@ -143,11 +143,11 @@ func (b *Bot) sendKeyboardAfterError(ctx context.Context, userID int64) {
 	var keyboard *maxbot.Keyboard
 	switch userRole {
 	case "admin":
-		keyboard = GetAdminKeyboard(b.MaxAPI)
+		keyboard = GetAdminKeyboard(b.MaxAPI, b.superUser[userID])
 	case "teacher":
-		keyboard = GetTeacherKeyboard(b.MaxAPI)
+		keyboard = GetTeacherKeyboard(b.MaxAPI, b.superUser[userID])
 	case "student":
-		keyboard = GetStudentKeyboard(b.MaxAPI)
+		keyboard = GetStudentKeyboard(b.MaxAPI, b.superUser[userID])
 	default:
 		b.logger.Warnf("Unknown role for user %d: %q", userID, userRole)
 		return

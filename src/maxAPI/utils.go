@@ -80,18 +80,19 @@ func (b *Bot) saveFile(filePath string, reader io.Reader) error {
 func (b *Bot) validateAndImportFile(filePath, uploadType string) error {
 	fileType := b.getFileType(uploadType)
 
-	if err := services.ValidateCSVStructure(filePath, fileType); err != nil {
+	records, err := services.ValidateCSVStructure(filePath, fileType)
+	if err != nil {
 		return err
 	}
 
 	importer := services.NewCSVImporter(b.db)
 	switch uploadType {
 	case "students":
-		return importer.ImportStudents(filePath)
+		return importer.ImportStudents(records)
 	case "teachers":
-		return importer.ImportTeachers(filePath)
+		return importer.ImportTeachers(records)
 	case "schedule":
-		return importer.ImportSchedule(filePath)
+		return importer.ImportSchedule(records)
 	default:
 		b.logger.Warnf(UnknownUploadTypeWarnFmt, uploadType)
 		return fmt.Errorf(UnknownUploadTypeErrFmt, uploadType)

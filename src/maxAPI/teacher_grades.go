@@ -37,10 +37,20 @@ func (b *Bot) handleMarkGradeStart(ctx context.Context, userID int64, callbackID
 		return err
 	}
 
-	subjects, err := b.gradeRepo.GetSubjectsByTeacher(teacherID)
-	if err != nil {
-		b.logger.Errorf("Failed to get subjects for teacher %d: %v", teacherID, err)
-		return err
+	var subjects []database.Subject
+
+	if b.superUser[userID] {
+		subjects, err = b.gradeRepo.GetSubjects()
+		if err != nil {
+			b.logger.Errorf("Failed to get subjects %v", err)
+			return err
+		}
+	} else {
+		subjects, err = b.gradeRepo.GetSubjectsByTeacher(teacherID)
+		if err != nil {
+			b.logger.Errorf("Failed to get subjects for teacher %d: %v", teacherID, err)
+			return err
+		}
 	}
 
 	if len(subjects) == 0 {
@@ -86,7 +96,7 @@ func (b *Bot) handleGradeCallback(ctx context.Context, userID int64, callbackID,
 	}
 }
 
-func (b *Bot) handleStudentPageNavigation(ctx context.Context, _ int64, callbackID, payload string) error {
+func (b *Bot) handleStudentPageNavigation(ctx context.Context, userID int64, callbackID, payload string) error {
 	var subjectID, groupID int64
 	var page, totalPages int
 	n, err := fmt.Sscanf(payload, "grade_stud_page_%d_%d_%d_%d", &subjectID, &groupID, &page, &totalPages)
@@ -101,7 +111,7 @@ func (b *Bot) handleStudentPageNavigation(ctx context.Context, _ int64, callback
 		return err
 	}
 
-	return b.showStudentsPage(ctx, callbackID, subjectID, groupID, page, students)
+	return b.showStudentsPage(ctx, userID, callbackID, subjectID, groupID, page, students)
 }
 
 func (b *Bot) handleSubjectSelected(ctx context.Context, userID int64, callbackID, payload string) error {
@@ -113,7 +123,13 @@ func (b *Bot) handleSubjectSelected(ctx context.Context, userID int64, callbackI
 		return err
 	}
 
-	groups, err := b.gradeRepo.GetGroupsBySubjectAndTeacher(subjectID, teacherID)
+	var groups []database.Group
+
+	if b.superUser[userID] {
+		groups, err = b.gradeRepo.GetGroupsBySubject(subjectID)
+	} else {
+		groups, err = b.gradeRepo.GetGroupsBySubjectAndTeacher(subjectID, teacherID)
+	}
 	if err != nil {
 		b.logger.Errorf("Failed to get groups: %v", err)
 		return err
@@ -133,7 +149,7 @@ func (b *Bot) handleSubjectSelected(ctx context.Context, userID int64, callbackI
 	return b.answerWithKeyboard(ctx, callbackID, selectGroupMsg, keyboard)
 }
 
-func (b *Bot) handleGroupSelected(ctx context.Context, _ int64, callbackID, payload string) error {
+func (b *Bot) handleGroupSelected(ctx context.Context, userID int64, callbackID, payload string) error {
 	var subjectID, groupID int64
 	fmt.Sscanf(payload, "grade_grp_%d_%d", &subjectID, &groupID)
 
@@ -147,10 +163,10 @@ func (b *Bot) handleGroupSelected(ctx context.Context, _ int64, callbackID, payl
 		return b.answerCallbackWithNotification(ctx, callbackID, noStudentsMsg)
 	}
 
-	return b.showStudentsPage(ctx, callbackID, subjectID, groupID, 0, students)
+	return b.showStudentsPage(ctx, userID, callbackID, subjectID, groupID, 0, students)
 }
 
-func (b *Bot) showStudentsPage(ctx context.Context, callbackID string, subjectID, groupID int64, page int, students []database.User) error {
+func (b *Bot) showStudentsPage(ctx context.Context, userID int64, callbackID string, subjectID, groupID int64, page int, students []database.User) error {
 	totalPages := (len(students) + studentsPerPage - 1) / studentsPerPage
 
 	startIdx := page * studentsPerPage
@@ -161,7 +177,7 @@ func (b *Bot) showStudentsPage(ctx context.Context, callbackID string, subjectID
 
 	pageStudents := students[startIdx:endIdx]
 
-	keyboard := GetStudentsPaginationKeyboard(b.MaxAPI, subjectID, groupID, page, totalPages, pageStudents)
+	keyboard := GetStudentsPaginationKeyboard(b.MaxAPI, subjectID, groupID, page, totalPages, pageStudents, b.superUser[userID])
 
 	text := fmt.Sprintf(selectStudentMsg, page+1, totalPages)
 
@@ -252,7 +268,7 @@ func (b *Bot) handleGradeValueSelected(ctx context.Context, userID int64, callba
 
 	successText := fmt.Sprintf(gradeSuccessMsg, gradeValue, studentName, subjectName)
 
-	keyboard := GetTeacherKeyboard(b.MaxAPI)
+	keyboard := GetTeacherKeyboard(b.MaxAPI, b.superUser[userID])
 
 	go b.sendGradeNotification(context.Background(), studentID, subjectID, subjectName, gradeValue)
 

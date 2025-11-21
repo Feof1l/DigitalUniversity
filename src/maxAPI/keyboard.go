@@ -24,6 +24,12 @@ const (
 	btnShowScore      = "Посмотреть оценки"
 	btnShowAttendance = "Посмотреть посещаемость"
 
+	btnAdmin   = "Администратор"
+	btnTeacher = "Преподаватель"
+	btnStudent = "Студент"
+
+	btnBackToRoleSelection = "К выбору роли"
+
 	payloadUploadStudents = "uploadStudents"
 	payloadUploadTeachers = "uploadTeachers"
 	payloadUploadSchedule = "uploadSchedule"
@@ -34,42 +40,67 @@ const (
 	payloadShowAttendance = "showAttendance"
 	payloadScheduleDay    = "sch_day_%d"
 	payloadBackToMenu     = "backToMenu"
+	payloadStudentRole    = "student"
+	payloadAdminRole      = "admin"
+	payloadTeacherRole    = "teacher"
+
+	payloadBackToRoleSelection = "backToRoleSelection"
 )
 
-func GetAdminKeyboard(api *maxbot.Api) *maxbot.Keyboard {
+func GetSuperUserKeyboard(api *maxbot.Api) *maxbot.Keyboard {
+	keyboard := api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().AddCallback(btnAdmin, schemes.NEGATIVE, payloadAdminRole)
+	keyboard.AddRow().AddCallback(btnTeacher, schemes.NEGATIVE, payloadTeacherRole)
+	keyboard.AddRow().AddCallback(btnStudent, schemes.NEGATIVE, payloadStudentRole)
+	return keyboard
+}
+
+func GetAdminKeyboard(api *maxbot.Api, isSuperUser bool) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().AddCallback(btnUploadStudents, schemes.NEGATIVE, payloadUploadStudents)
 	keyboard.AddRow().AddCallback(btnUploadTeachers, schemes.NEGATIVE, payloadUploadTeachers)
 	keyboard.AddRow().AddCallback(btnUploadSchedule, schemes.NEGATIVE, payloadUploadSchedule)
+	if isSuperUser {
+		keyboard.AddRow().AddCallback(btnBackToRoleSelection, schemes.DEFAULT, payloadBackToRoleSelection)
+	}
 	return keyboard
 }
 
-func GetTeacherKeyboard(api *maxbot.Api) *maxbot.Keyboard {
+func GetTeacherKeyboard(api *maxbot.Api, isSuperUser bool) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().AddCallback(btnShowSchedule, schemes.NEGATIVE, payloadShowSchedule)
 	keyboard.AddRow().AddCallback(btnMarkScore, schemes.NEGATIVE, payloadMarkGrade)
 	keyboard.AddRow().AddCallback(btnMarkAttendance, schemes.NEGATIVE, payloadMarkAttendance)
+	if isSuperUser {
+		keyboard.AddRow().AddCallback(btnBackToRoleSelection, schemes.DEFAULT, payloadBackToRoleSelection)
+	}
 	return keyboard
 }
 
-func GetStudentKeyboard(api *maxbot.Api) *maxbot.Keyboard {
+func GetStudentKeyboard(api *maxbot.Api, isSuperUser bool) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().AddCallback(btnShowSchedule, schemes.NEGATIVE, payloadShowSchedule)
 	keyboard.AddRow().AddCallback(btnShowScore, schemes.NEGATIVE, payloadShowScore)
 	keyboard.AddRow().AddCallback(btnShowAttendance, schemes.NEGATIVE, payloadShowAttendance)
+	if isSuperUser {
+		keyboard.AddRow().AddCallback(btnBackToRoleSelection, schemes.DEFAULT, payloadBackToRoleSelection)
+	}
 	return keyboard
 }
 
-func GetScheduleKeyboard(api *maxbot.Api, prev, next int16) *maxbot.Keyboard {
+func GetScheduleKeyboard(api *maxbot.Api, prev, next int16, isSuperUser bool) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().
 		AddCallback(btnPrev, schemes.NEGATIVE, fmt.Sprintf(payloadScheduleDay, prev)).
 		AddCallback(btnNext, schemes.NEGATIVE, fmt.Sprintf(payloadScheduleDay, next))
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
+	if isSuperUser {
+		keyboard.AddRow().AddCallback(btnBackToRoleSelection, schemes.DEFAULT, payloadBackToRoleSelection)
+	}
 	return keyboard
 }
 
-func GetStudentsPaginationKeyboard(api *maxbot.Api, subjectID, groupID int64, currentPage, totalPages int, students []database.User) *maxbot.Keyboard {
+func GetStudentsPaginationKeyboard(api *maxbot.Api, subjectID, groupID int64, currentPage, totalPages int, students []database.User, isSuperUser bool) *maxbot.Keyboard {
 	keyboard := api.Messages.NewKeyboardBuilder()
 
 	for _, student := range students {
@@ -94,5 +125,8 @@ func GetStudentsPaginationKeyboard(api *maxbot.Api, subjectID, groupID int64, cu
 	}
 
 	keyboard.AddRow().AddCallback(btnBackToMenu, schemes.DEFAULT, payloadBackToMenu)
+	if isSuperUser {
+		keyboard.AddRow().AddCallback(btnBackToRoleSelection, schemes.DEFAULT, payloadBackToRoleSelection)
+	}
 	return keyboard
 }

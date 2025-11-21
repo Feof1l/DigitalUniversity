@@ -43,17 +43,21 @@ func newValidationError(msg string) *ValidationError {
 	return &ValidationError{Message: msg}
 }
 
-func ValidateCSVStructure(filePath string, expectedType FileType) error {
+func ValidateCSVStructure(filePath string, expectedType FileType) ([][]string, error) {
 	records, err := readAndParseCSV(filePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := validateRecordsNotEmpty(records); err != nil {
-		return err
+		return nil, err
 	}
 
-	return validateHeaders(records[0], expectedType)
+	if err := validateHeaders(records[0], expectedType); err != nil {
+		return nil, err
+	}
+
+	return records, nil
 }
 
 func readAndParseCSV(filePath string) ([][]string, error) {

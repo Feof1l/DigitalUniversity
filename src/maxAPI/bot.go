@@ -24,6 +24,8 @@ type Bot struct {
 	lastMessageID     map[int64]string
 	mu                sync.Mutex
 
+	superUser map[int64]bool
+
 	userRepo       *database.UserRepository
 	groupRepo      *database.GroupRepository
 	subjectRepo    *database.SubjectRepository
@@ -55,6 +57,8 @@ func NewBot(cfg *config.MaxConfig, log *logger.Logger, db *sqlx.DB, ctx context.
 		processedMessages: make(map[string]bool),
 		uploadCounter:     make(map[int64]int),
 		lastMessageID:     make(map[int64]string),
+
+		superUser: make(map[int64]bool),
 
 		userRepo:       database.NewUserRepository(db),
 		groupRepo:      database.NewGroupRepository(db),

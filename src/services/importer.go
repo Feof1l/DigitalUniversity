@@ -1,8 +1,6 @@
 package services
 
 import (
-	"encoding/csv"
-	"os"
 	"strconv"
 
 	"github.com/jmoiron/sqlx"
@@ -32,12 +30,7 @@ func NewCSVImporter(db *sqlx.DB) *CSVImporter {
 	}
 }
 
-func (imp *CSVImporter) ImportStudents(filePath string) error {
-	records, err := readCSV(filePath)
-	if err != nil {
-		return err
-	}
-
+func (imp *CSVImporter) ImportStudents(records [][]string) error {
 	tx, err := imp.db.Beginx()
 	if err != nil {
 		return err
@@ -75,12 +68,7 @@ func (imp *CSVImporter) ImportStudents(filePath string) error {
 	return tx.Commit()
 }
 
-func (imp *CSVImporter) ImportTeachers(filePath string) error {
-	records, err := readCSV(filePath)
-	if err != nil {
-		return err
-	}
-
+func (imp *CSVImporter) ImportTeachers(records [][]string) error {
 	tx, err := imp.db.Beginx()
 	if err != nil {
 		return err
@@ -111,12 +99,7 @@ func (imp *CSVImporter) ImportTeachers(filePath string) error {
 	return tx.Commit()
 }
 
-func (imp *CSVImporter) ImportSchedule(filePath string) error {
-	records, err := readCSV(filePath)
-	if err != nil {
-		return err
-	}
-
+func (imp *CSVImporter) ImportSchedule(records [][]string) error {
 	tx, err := imp.db.Beginx()
 	if err != nil {
 		return err
@@ -178,15 +161,4 @@ func (imp *CSVImporter) ImportSchedule(filePath string) error {
 	}
 
 	return tx.Commit()
-}
-
-func readCSV(filePath string) ([][]string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	return reader.ReadAll()
 }
